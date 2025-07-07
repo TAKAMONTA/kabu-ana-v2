@@ -2,7 +2,7 @@
 import { GoogleGenAI } from "@google/genai";
 import { AnalysisResponse, GroundingSource, InvestmentStyle, AnalysisStreamChunk } from "../types";
 
-const API_KEY = "AIzaSyDbWfKikRI1Vlj__ghG3mnbn6ElX3ZFEmU";
+const API_KEY = "AIzaSyBxF2Dr-sOQ-E5E24-AYpGVghaf5cUKlCU";
 
 if (!API_KEY) {
     throw new Error("API_KEYが環境変数に設定されていません。");
