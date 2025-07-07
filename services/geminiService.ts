@@ -22,14 +22,14 @@ function buildPrompt(ticker: string, style: InvestmentStyle, question: string | 
 1.  **株価情報:** Web検索ツールで最新情報を取得し、以下の形式で出力:
     {"type": "priceInfo", "data": {"price": "...", "dayHigh": "...", "dayLow": "...", "change": "..."}}
 
-2.  **テクニカル分析:** チャート画像（あれば）と検索情報を基に分析し、100点満点で採点し、要約を記述。以下の形式で出力:
-    {"type": "technicalAnalysis", "data": {"score": 0, "summary": "..."}}
+2.  **テクニカル分析:** チャート画像（あれば）と検索情報を基に分析し、100点満点で採点し、要約を箇条書き形式で記述。各要点は句点（。）で区切って記述。以下の形式で出力:
+    {"type": "technicalAnalysis", "data": {"score": 0, "summary": "要点1の内容。要点2の内容。要点3の内容。"}}
 
-3.  **ファンダメンタル分析:** 財務指標やニュースを調査し、100点満点で採点し、要約を記述。以下の形式で出力:
-    {"type": "fundamentalAnalysis", "data": {"score": 0, "summary": "..."}}
+3.  **ファンダメンタル分析:** 財務指標やニュースを調査し、100点満点で採点し、要約を箇条書き形式で記述。各要点は句点（。）で区切って記述。以下の形式で出力:
+    {"type": "fundamentalAnalysis", "data": {"score": 0, "summary": "要点1の内容。要点2の内容。要点3の内容。"}}
 
-4.  **総合判断:** 全てを統合し、投資判断（「買い」「売り」「様子見」）と理由を記述。以下の形式で出力:
-    {"type": "overallJudgement", "data": {"decision": "買い", "summary": "..."}}
+4.  **総合判断:** 全てを統合し、投資判断（「買い」「売り」「様子見」）と理由を箇条書き形式で記述。各要点は句点（。）で区切って記述。以下の形式で出力:
+    {"type": "overallJudgement", "data": {"decision": "買い", "summary": "判断理由1。判断理由2。判断理由3。"}}
 
 ${question ? `5. **追加の質問:** 「${question}」に回答。以下の形式で出力:\n{"type": "questionAnswer", "data": "..."}` : ''}
 

@@ -40,6 +40,16 @@ const AnalysisSection: React.FC<{
 }> = ({ icon, title, score, summary }) => {
     if (score === undefined || summary === undefined) return <SectionSkeleton />;
 
+    const formatSummaryAsBullets = (text: string) => {
+        const sentences = text.split(/[。．]/);
+        return sentences
+            .filter(sentence => sentence.trim().length > 0)
+            .map(sentence => sentence.trim())
+            .filter(sentence => sentence.length > 0);
+    };
+
+    const bulletPoints = formatSummaryAsBullets(summary);
+
     return (
       <div className="bg-gray-800/60 p-6 rounded-xl border border-gray-700 h-full flex flex-col">
         <div className="flex items-center mb-4">
@@ -47,7 +57,14 @@ const AnalysisSection: React.FC<{
           <h3 className="text-xl font-bold ml-3 text-gray-200">{title}</h3>
           <span className="ml-auto text-2xl font-bold text-blue-400">{score}<span className="text-base">/100</span></span>
         </div>
-        <p className="text-gray-400 leading-relaxed flex-grow">{summary}</p>
+        <ul className="text-gray-400 leading-relaxed flex-grow space-y-2">
+          {bulletPoints.map((point, index) => (
+            <li key={index} className="flex items-start">
+              <span className="text-blue-400 mr-2 mt-1">•</span>
+              <span>{point}</span>
+            </li>
+          ))}
+        </ul>
       </div>
     );
 };
@@ -133,7 +150,14 @@ const AnalysisDisplay: React.FC<AnalysisDisplayProps> = ({ data, sources }) => {
                 </div>
                 <span className={`ml-auto text-lg font-bold px-4 py-1 rounded-full ${getDecisionClass(overallJudgement.decision)}`}>{overallJudgement.decision}</span>
             </div>
-            <p className="text-gray-400 leading-relaxed mt-4">{overallJudgement.summary}</p>
+            <ul className="text-gray-400 leading-relaxed mt-4 space-y-2">
+              {overallJudgement.summary.split(/[。．]/).filter(point => point.trim().length > 0).map((point, index) => (
+                <li key={index} className="flex items-start">
+                  <span className="text-blue-400 mr-2 mt-1">•</span>
+                  <span>{point.trim()}</span>
+                </li>
+              ))}
+            </ul>
         </div>
       ) : (
         <div className="bg-gray-800/60 p-6 rounded-xl border border-gray-700 h-32 animate-pulse"></div>
@@ -148,6 +172,42 @@ const AnalysisDisplay: React.FC<AnalysisDisplayProps> = ({ data, sources }) => {
       )}
 
       <SourceLinks sources={sources} />
+      
+      {/* Enhanced Disclaimer */}
+      <div className="bg-red-900/20 border border-red-700/50 p-6 rounded-xl">
+        <h4 className="text-lg font-bold text-red-400 mb-3 flex items-center">
+          <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+          </svg>
+          重要な免責事項
+        </h4>
+        <ul className="text-red-300 text-sm space-y-2 leading-relaxed">
+          <li className="flex items-start">
+            <span className="text-red-400 mr-2 mt-1">•</span>
+            <span><strong>投資判断の責任:</strong> 本分析結果は情報提供のみを目的としており、投資の勧誘や助言ではありません。最終的な投資判断はお客様ご自身の責任で行ってください。</span>
+          </li>
+          <li className="flex items-start">
+            <span className="text-red-400 mr-2 mt-1">•</span>
+            <span><strong>損失リスク:</strong> 株式投資には元本割れのリスクがあります。投資額以上の損失が発生する可能性があることを十分ご理解ください。</span>
+          </li>
+          <li className="flex items-start">
+            <span className="text-red-400 mr-2 mt-1">•</span>
+            <span><strong>情報の正確性:</strong> 分析に使用される情報は第三者から取得したものであり、その正確性や完全性を保証するものではありません。</span>
+          </li>
+          <li className="flex items-start">
+            <span className="text-red-400 mr-2 mt-1">•</span>
+            <span><strong>AI分析の限界:</strong> 本分析はAIによる自動生成であり、市場の急激な変化や予期せぬ事象を完全に予測することはできません。</span>
+          </li>
+          <li className="flex items-start">
+            <span className="text-red-400 mr-2 mt-1">•</span>
+            <span><strong>過去実績と将来:</strong> 過去の実績や分析結果は将来の投資成果を保証するものではありません。</span>
+          </li>
+          <li className="flex items-start">
+            <span className="text-red-400 mr-2 mt-1">•</span>
+            <span><strong>専門家への相談:</strong> 重要な投資判断の際は、必ず金融の専門家や投資顧問にご相談することを強く推奨します。</span>
+          </li>
+        </ul>
+      </div>
     </div>
   );
 };
