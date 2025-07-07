@@ -1,79 +1,27 @@
 
-interface MockUser {
-  uid: string;
-  email: string;
-}
+import { initializeApp } from "firebase/app";
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 
-interface MockAuth {
-  currentUser: MockUser | null;
-  onAuthStateChanged: (callback: (user: MockUser | null) => void) => () => void;
-  signInWithEmailAndPassword: (email: string, password: string) => Promise<{ user: MockUser }>;
-  createUserWithEmailAndPassword: (email: string, password: string) => Promise<{ user: MockUser }>;
-  signOut: () => Promise<void>;
-}
+const firebaseConfig = {
+  apiKey: "AIzaSyCd_SZvlUlrYyjD24aczZc8J_zzzu0uwv8",
+  authDomain: "kabu-ana-4d439.firebaseapp.com",
+  projectId: "kabu-ana-4d439",
+  storageBucket: "kabu-ana-4d439.firebasestorage.app",
+  messagingSenderId: "576150778556",
+  appId: "1:576150778556:web:afd571165894da2d6256b9",
+  measurementId: "G-DJR20L5VCF"
+};
 
-class MockFirebaseAuth implements MockAuth {
-  currentUser: MockUser | null = null;
-  private listeners: ((user: MockUser | null) => void)[] = [];
+const app = initializeApp(firebaseConfig);
+export const auth = getAuth(app);
 
-  onAuthStateChanged(callback: (user: MockUser | null) => void) {
-    this.listeners.push(callback);
-    setTimeout(() => callback(this.currentUser), 100);
-    
-    return () => {
-      const index = this.listeners.indexOf(callback);
-      if (index > -1) {
-        this.listeners.splice(index, 1);
-      }
-    };
-  }
+export const googleProvider = new GoogleAuthProvider();
 
-  async signInWithEmailAndPassword(email: string, password: string) {
-    if (email && password.length >= 6) {
-      const user: MockUser = {
-        uid: 'mock-user-' + Date.now(),
-        email: email
-      };
-      this.currentUser = user;
-      this.notifyListeners();
-      return { user };
-    } else {
-      throw new Error('Invalid credentials');
-    }
-  }
-
-  async createUserWithEmailAndPassword(email: string, password: string) {
-    if (email && password.length >= 6) {
-      const user: MockUser = {
-        uid: 'mock-user-' + Date.now(),
-        email: email
-      };
-      this.currentUser = user;
-      this.notifyListeners();
-      return { user };
-    } else {
-      throw new Error('Invalid credentials');
-    }
-  }
-
-  async signOut() {
-    this.currentUser = null;
-    this.notifyListeners();
-  }
-
-  private notifyListeners() {
-    this.listeners.forEach(callback => callback(this.currentUser));
-  }
-}
-
-export const auth = new MockFirebaseAuth();
-
-export const onAuthStateChanged = auth.onAuthStateChanged.bind(auth);
-export const signInWithEmailAndPassword = auth.signInWithEmailAndPassword.bind(auth);
-export const createUserWithEmailAndPassword = auth.createUserWithEmailAndPassword.bind(auth);
-export const signOut = auth.signOut.bind(auth);
+export { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, signInWithPopup };
 
 export interface User {
   uid: string;
-  email: string;
+  email: string | null;
+  displayName?: string | null;
+  photoURL?: string | null;
 }
