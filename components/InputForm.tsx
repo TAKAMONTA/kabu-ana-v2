@@ -9,7 +9,7 @@ interface InputFormProps {
 }
 
 const InputForm: React.FC<InputFormProps> = ({ isLoading, onSubmit }) => {
-  const [ticker, setTicker] = useState<string>('TSLA');
+  const [ticker, setTicker] = useState<string>('');
   const [investmentStyle, setInvestmentStyle] = useState<InvestmentStyle>(InvestmentStyle.MID);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
