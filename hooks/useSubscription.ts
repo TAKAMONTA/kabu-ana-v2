@@ -33,7 +33,7 @@ export const useSubscription = () => {
     try {
       setLoading(true);
       
-      const userData = null;
+      const userData = null as any;
       
       if (userData) {
         setSubscription(userData.subscription);
@@ -43,11 +43,11 @@ export const useSubscription = () => {
         const defaultData = {
           userId: user.uid,
           subscription: {
-            planId: 'free',
+            planId: 'standard_take',
             status: 'active' as const,
             currentPeriodStart: new Date(),
             currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-            cancelAtPeriodEnd: false
+            cancelAtPeriodEnd: true
           },
           singleStockPurchases: [],
           registeredStocks: [],
@@ -62,11 +62,11 @@ export const useSubscription = () => {
     } catch (error) {
       console.error('Failed to load subscription data:', error);
       const fallbackSubscription: UserSubscription = {
-        planId: 'free',
+        planId: 'standard_take',
         status: 'active',
         currentPeriodStart: new Date(),
         currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        cancelAtPeriodEnd: false
+        cancelAtPeriodEnd: true
       };
       setSubscription(fallbackSubscription);
       setSingleStockPurchases([]);
@@ -161,6 +161,8 @@ export const useSubscription = () => {
     getCurrentPlan,
     canAnalyzeStock,
     getAnalysisType,
+    canAskQuestions: () => SubscriptionService.canAskQuestions(subscription),
+    canQuestionAnalysis: () => SubscriptionService.canQuestionAnalysis(subscription),
     addRegisteredStock,
     purchaseSingleStock,
     upgradePlan

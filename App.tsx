@@ -5,6 +5,7 @@ import AuthScreen from './components/auth/AuthScreen';
 import KeyboardShortcuts from './components/KeyboardShortcuts';
 import PricingModal from './components/subscription/PricingModal';
 import SubscriptionBanner from './components/subscription/SubscriptionBanner';
+import PlanFeaturesDisplay from './components/PlanFeaturesDisplay';
 import { useAuth } from './contexts/AuthContext';
 import { useSubscription } from './hooks/useSubscription';
 import { analyzeStockStream } from './services/geminiService';
@@ -18,6 +19,8 @@ const App: React.FC = () => {
     getCurrentPlan, 
     canAnalyzeStock, 
     getAnalysisType, 
+    canAskQuestions,
+    canQuestionAnalysis,
     addRegisteredStock,
     purchaseSingleStock,
     upgradePlan,
@@ -66,7 +69,7 @@ const App: React.FC = () => {
 
     try {
       const analysisType = getAnalysisType(ticker);
-      const stream = analyzeStockStream(ticker, style, imageBase64, question, abortControllerRef.current.signal, analysisType);
+      const stream = analyzeStockStream(ticker, style, imageBase64, question, abortControllerRef.current.signal);
 
       for await (const chunk of stream) {
           if (chunk.type !== 'sources') {
@@ -179,7 +182,7 @@ const App: React.FC = () => {
             currentPlan={getCurrentPlan()}
             onUpgrade={() => setShowPricingModal(true)}
           />
-          <InputForm isLoading={isLoading} onSubmit={handleAnalyze} />
+          <InputForm isLoading={isLoading} canAskQuestions={canAskQuestions()} onSubmit={handleAnalyze} />
           
           {error && (
             <div className="mt-8 bg-red-900/50 border border-red-700 text-red-300 px-4 py-3 rounded-lg text-center animate-fade-in-up" role="alert">
@@ -201,7 +204,14 @@ const App: React.FC = () => {
                         </button>
                     </div>
                 )}
-              <AnalysisDisplay data={analysisResult || {}} sources={sources} />
+              <AnalysisDisplay 
+                data={analysisResult || {}} 
+                sources={sources} 
+                canQuestionAnalysis={canQuestionAnalysis()}
+                onQuestionAnalysis={(question) => {
+                  console.log('Analysis question:', question);
+                }}
+              />
             </div>
           )}
         </div>
@@ -244,6 +254,8 @@ const App: React.FC = () => {
         onCancel={handleCancel}
         isLoading={isLoading}
       />
+      
+      <PlanFeaturesDisplay currentPlan={getCurrentPlan()} />
       
       <footer className="text-center py-6 text-gray-500 text-sm">
         <p>これはAIによって生成された分析であり、投資助言ではありません。ご自身の判断で投資を行ってください。</p>

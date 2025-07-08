@@ -7,6 +7,8 @@ import { formatCurrency, formatPercentage } from '../utils/formatters';
 interface AnalysisDisplayProps {
   data: AnalysisResponse;
   sources: GroundingSource[];
+  canQuestionAnalysis?: boolean;
+  onQuestionAnalysis?: (question: string) => void;
 }
 
 const getDecisionClass = (decision?: string) => {
@@ -93,7 +95,7 @@ const SourceLinks: React.FC<{ sources: GroundingSource[] }> = ({ sources }) => {
     );
 };
 
-const AnalysisDisplay: React.FC<AnalysisDisplayProps> = ({ data, sources }) => {
+const AnalysisDisplay: React.FC<AnalysisDisplayProps> = ({ data, sources, canQuestionAnalysis = false, onQuestionAnalysis }) => {
   const { priceInfo, technicalAnalysis, fundamentalAnalysis, overallJudgement, questionAnswer } = data;
 
   return (
@@ -170,6 +172,37 @@ const AnalysisDisplay: React.FC<AnalysisDisplayProps> = ({ data, sources }) => {
         <div className="bg-gray-800/60 p-6 rounded-xl border border-gray-700">
           <h4 className="text-lg font-semibold mb-2 text-gray-300">質問への回答</h4>
           <p className="text-gray-400 leading-relaxed">{questionAnswer}</p>
+        </div>
+      )}
+
+      {canQuestionAnalysis && data && Object.keys(data).length > 0 && (
+        <div className="bg-gray-800/60 p-6 rounded-xl border border-gray-700">
+          <h4 className="text-lg font-semibold mb-4 text-gray-300">分析結果について質問する</h4>
+          <div className="flex gap-3">
+            <input
+              type="text"
+              placeholder="分析結果について質問してください..."
+              className="flex-1 bg-gray-900/70 border border-gray-600 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+              onKeyPress={(e) => {
+                if (e.key === 'Enter' && e.currentTarget.value.trim() && onQuestionAnalysis) {
+                  onQuestionAnalysis(e.currentTarget.value.trim());
+                  e.currentTarget.value = '';
+                }
+              }}
+            />
+            <button 
+              onClick={(e) => {
+                const input = e.currentTarget.previousElementSibling as HTMLInputElement;
+                if (input && input.value.trim() && onQuestionAnalysis) {
+                  onQuestionAnalysis(input.value.trim());
+                  input.value = '';
+                }
+              }}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+            >
+              質問する
+            </button>
+          </div>
         </div>
       )}
 

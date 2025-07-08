@@ -13,6 +13,8 @@ export interface SubscriptionPlan {
     hasComparison: boolean;
     hasPrediction: boolean;
     hasStopLoss: boolean;
+    canAskQuestions: boolean;
+    canQuestionAnalysis: boolean;
   };
 }
 
@@ -45,7 +47,9 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
       maxCommentLength: 100,
       hasComparison: false,
       hasPrediction: false,
-      hasStopLoss: false
+      hasStopLoss: false,
+      canAskQuestions: false,
+      canQuestionAnalysis: false
     }
   },
   {
@@ -62,7 +66,9 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
       maxCommentLength: 250,
       hasComparison: false,
       hasPrediction: false,
-      hasStopLoss: false
+      hasStopLoss: false,
+      canAskQuestions: true,
+      canQuestionAnalysis: false
     }
   },
   {
@@ -79,7 +85,9 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
       maxCommentLength: 250,
       hasComparison: true,
       hasPrediction: false,
-      hasStopLoss: false
+      hasStopLoss: false,
+      canAskQuestions: true,
+      canQuestionAnalysis: true
     }
   },
   {
@@ -96,7 +104,9 @@ export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
       maxCommentLength: 250,
       hasComparison: true,
       hasPrediction: true,
-      hasStopLoss: true
+      hasStopLoss: true,
+      canAskQuestions: true,
+      canQuestionAnalysis: true
     }
   }
 ];
@@ -156,5 +166,21 @@ export class SubscriptionService {
       currency: currency,
       minimumFractionDigits: 0
     }).format(price);
+  }
+
+  static canAskQuestions(subscription: UserSubscription | null): boolean {
+    if (!subscription || subscription.status !== 'active') {
+      return false;
+    }
+    const plan = this.getCurrentPlan(subscription.planId);
+    return plan?.features.canAskQuestions || false;
+  }
+
+  static canQuestionAnalysis(subscription: UserSubscription | null): boolean {
+    if (!subscription || subscription.status !== 'active') {
+      return false;
+    }
+    const plan = this.getCurrentPlan(subscription.planId);
+    return plan?.features.canQuestionAnalysis || false;
   }
 }
