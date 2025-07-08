@@ -8,6 +8,7 @@ import { formatCurrency, formatPercentage } from '../utils/formatters';
 interface AnalysisDisplayProps {
   data: AnalysisResponse;
   sources: GroundingSource[];
+  ticker?: string;
   canQuestionAnalysis?: boolean;
   onQuestionAnalysis?: (question: string) => void;
 }
@@ -98,7 +99,7 @@ const SourceLinks: React.FC<{ sources: GroundingSource[] }> = ({ sources }) => {
     );
 };
 
-const AnalysisDisplay: React.FC<AnalysisDisplayProps> = ({ data, sources, canQuestionAnalysis = false, onQuestionAnalysis }) => {
+const AnalysisDisplay: React.FC<AnalysisDisplayProps> = ({ data, sources, ticker, canQuestionAnalysis = false, onQuestionAnalysis }) => {
   const { priceInfo, technicalAnalysis, fundamentalAnalysis, overallJudgement, questionAnswer } = data;
 
   return (
@@ -109,7 +110,7 @@ const AnalysisDisplay: React.FC<AnalysisDisplayProps> = ({ data, sources, canQue
             <>
                 <div className="bg-gray-800/60 p-4 rounded-lg border border-gray-700 hover:bg-gray-700/60 transition-colors">
                     <p className="text-sm text-gray-400">現在値</p>
-                    <p className="text-2xl font-bold text-white">{formatCurrency(priceInfo.price)}</p>
+                    <p className="text-2xl font-bold text-white">{formatCurrency(priceInfo.price, ticker)}</p>
                 </div>
                 <div className="bg-gray-800/60 p-4 rounded-lg border border-gray-700 hover:bg-gray-700/60 transition-colors">
                     <p className="text-sm text-gray-400">前日比</p>
@@ -117,11 +118,11 @@ const AnalysisDisplay: React.FC<AnalysisDisplayProps> = ({ data, sources, canQue
                 </div>
                 <div className="bg-gray-800/60 p-4 rounded-lg border border-gray-700 hover:bg-gray-700/60 transition-colors">
                     <p className="text-sm text-gray-400">高値</p>
-                    <p className="text-2xl font-bold text-white">{formatCurrency(priceInfo.dayHigh)}</p>
+                    <p className="text-2xl font-bold text-white">{formatCurrency(priceInfo.dayHigh, ticker)}</p>
                 </div>
                 <div className="bg-gray-800/60 p-4 rounded-lg border border-gray-700 hover:bg-gray-700/60 transition-colors">
                     <p className="text-sm text-gray-400">安値</p>
-                    <p className="text-2xl font-bold text-white">{formatCurrency(priceInfo.dayLow)}</p>
+                    <p className="text-2xl font-bold text-white">{formatCurrency(priceInfo.dayLow, ticker)}</p>
                 </div>
             </>
         ) : (

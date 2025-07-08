@@ -29,6 +29,7 @@ const App: React.FC = () => {
   } = useSubscription();
   const [analysisResult, setAnalysisResult] = useState<AnalysisResponse | null>(null);
   const [sources, setSources] = useState<GroundingSource[]>([]);
+  const [currentTicker, setCurrentTicker] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useLocalStorage<AnalysisHistoryItem[]>('stockAnalysisHistory', []);
@@ -68,6 +69,7 @@ const App: React.FC = () => {
     setError(null);
     setAnalysisResult({}); // Reset to an empty object for streaming
     setSources([]);
+    setCurrentTicker(ticker);
     abortControllerRef.current = new AbortController();
 
     const fullAnalysisResponse: AnalysisResponse = {};
@@ -118,6 +120,7 @@ const App: React.FC = () => {
   const handleSelectHistory = useCallback((item: AnalysisHistoryItem) => {
     setAnalysisResult(item.analysis);
     setSources(item.sources);
+    setCurrentTicker(item.ticker);
     setError(null);
     setIsLoading(false);
     if(abortControllerRef.current) {
@@ -226,6 +229,7 @@ const App: React.FC = () => {
               <AnalysisDisplay 
                 data={analysisResult || {}} 
                 sources={sources} 
+                ticker={currentTicker || undefined}
                 canQuestionAnalysis={canQuestionAnalysis()}
                 onQuestionAnalysis={(question) => {
                   console.log('Analysis question:', question);
