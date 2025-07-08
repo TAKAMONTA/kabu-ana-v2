@@ -119,6 +119,7 @@ export async function* analyzeStockStream(
             return;
         }
         console.error("Error analyzing stock:", error);
-        throw new Error("AIによる分析中にエラーが発生しました。");
+        const errorMessage = error.message || "AIによる分析中にエラーが発生しました。";
+        throw new Error(`分析エラー: ${errorMessage}`);
     }
 };

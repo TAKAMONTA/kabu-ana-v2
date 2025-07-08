@@ -2,6 +2,7 @@ import React from 'react';
 import { AnalysisResponse, GroundingSource } from '../types';
 import ScoreChart from './ScoreChart';
 import { ChartBarIcon, BookOpenIcon, ScaleIcon, LinkIcon } from './icons';
+import { formatCurrency, formatPercentage } from '../utils/formatters';
 
 interface AnalysisDisplayProps {
   data: AnalysisResponse;
@@ -24,10 +25,11 @@ const getDecisionClass = (decision?: string) => {
 const SectionSkeleton: React.FC = () => (
     <div className="bg-gray-800/60 p-6 rounded-xl border border-gray-700 h-full flex flex-col animate-pulse">
         <div className="h-7 bg-gray-700 rounded w-3/4 mb-4"></div>
-        <div className="space-y-2 flex-grow">
+        <div className="space-y-3 flex-grow">
             <div className="h-4 bg-gray-700 rounded w-full"></div>
             <div className="h-4 bg-gray-700 rounded w-5/6"></div>
             <div className="h-4 bg-gray-700 rounded w-full"></div>
+            <div className="h-4 bg-gray-700 rounded w-4/5"></div>
         </div>
     </div>
 );
@@ -100,21 +102,21 @@ const AnalysisDisplay: React.FC<AnalysisDisplayProps> = ({ data, sources }) => {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
         {priceInfo ? (
             <>
-                <div className="bg-gray-800/60 p-4 rounded-lg border border-gray-700">
+                <div className="bg-gray-800/60 p-4 rounded-lg border border-gray-700 hover:bg-gray-700/60 transition-colors">
                     <p className="text-sm text-gray-400">現在値</p>
-                    <p className="text-2xl font-bold text-white">{priceInfo.price}</p>
+                    <p className="text-2xl font-bold text-white">{formatCurrency(priceInfo.price)}</p>
                 </div>
-                <div className="bg-gray-800/60 p-4 rounded-lg border border-gray-700">
+                <div className="bg-gray-800/60 p-4 rounded-lg border border-gray-700 hover:bg-gray-700/60 transition-colors">
                     <p className="text-sm text-gray-400">前日比</p>
-                    <p className={`text-2xl font-bold ${priceInfo.change.startsWith('+') ? 'text-green-400' : 'text-red-400'}`}>{priceInfo.change}</p>
+                    <p className={`text-2xl font-bold ${priceInfo.change.startsWith('+') ? 'text-green-400' : 'text-red-400'}`}>{formatPercentage(priceInfo.change)}</p>
                 </div>
-                <div className="bg-gray-800/60 p-4 rounded-lg border border-gray-700">
+                <div className="bg-gray-800/60 p-4 rounded-lg border border-gray-700 hover:bg-gray-700/60 transition-colors">
                     <p className="text-sm text-gray-400">高値</p>
-                    <p className="text-2xl font-bold text-white">{priceInfo.dayHigh}</p>
+                    <p className="text-2xl font-bold text-white">{formatCurrency(priceInfo.dayHigh)}</p>
                 </div>
-                <div className="bg-gray-800/60 p-4 rounded-lg border border-gray-700">
+                <div className="bg-gray-800/60 p-4 rounded-lg border border-gray-700 hover:bg-gray-700/60 transition-colors">
                     <p className="text-sm text-gray-400">安値</p>
-                    <p className="text-2xl font-bold text-white">{priceInfo.dayLow}</p>
+                    <p className="text-2xl font-bold text-white">{formatCurrency(priceInfo.dayLow)}</p>
                 </div>
             </>
         ) : (

@@ -2,38 +2,41 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import InputForm from './components/InputForm';
 import AnalysisDisplay from './components/AnalysisDisplay';
 import AuthScreen from './components/auth/AuthScreen';
+import KeyboardShortcuts from './components/KeyboardShortcuts';
+import PricingModal from './components/subscription/PricingModal';
+import SubscriptionBanner from './components/subscription/SubscriptionBanner';
 import { useAuth } from './contexts/AuthContext';
+import { useSubscription } from './hooks/useSubscription';
 import { analyzeStockStream } from './services/geminiService';
 import type { AnalysisResponse, InvestmentStyle, GroundingSource, AnalysisHistoryItem, AnalysisStreamChunk } from './types';
 import { ChartBarIcon, HistoryIcon, StopCircleIcon } from './components/icons';
+import { useLocalStorage } from './hooks/useLocalStorage';
 
 const App: React.FC = () => {
   const { user, loading, logout } = useAuth();
+  const { 
+    getCurrentPlan, 
+    canAnalyzeStock, 
+    getAnalysisType, 
+    addRegisteredStock,
+    purchaseSingleStock,
+    upgradePlan,
+    loading: subscriptionLoading 
+  } = useSubscription();
   const [analysisResult, setAnalysisResult] = useState<AnalysisResponse | null>(null);
   const [sources, setSources] = useState<GroundingSource[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [history, setHistory] = useState<AnalysisHistoryItem[]>([]);
+  const [history, setHistory] = useLocalStorage<AnalysisHistoryItem[]>('stockAnalysisHistory', []);
+  const [showPricingModal, setShowPricingModal] = useState(false);
+  const [pendingAnalysis, setPendingAnalysis] = useState<{
+    ticker: string;
+    style: InvestmentStyle;
+    imageBase64: string | null;
+    question: string;
+  } | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  useEffect(() => {
-    try {
-      const savedHistory = localStorage.getItem('stockAnalysisHistory');
-      if (savedHistory) {
-        setHistory(JSON.parse(savedHistory));
-      }
-    } catch (e) {
-      console.error("Could not load history from localStorage", e);
-    }
-  }, []);
-
-  useEffect(() => {
-    try {
-        localStorage.setItem('stockAnalysisHistory', JSON.stringify(history));
-    } catch (e) {
-        console.error("Could not save history to localStorage", e);
-    }
-  }, [history]);
 
   const handleCancel = () => {
     if (abortControllerRef.current) {
@@ -46,6 +49,12 @@ const App: React.FC = () => {
   const handleAnalyze = useCallback(async (ticker: string, style: InvestmentStyle, imageBase64: string | null, question: string) => {
     if (isLoading) return;
 
+    if (!canAnalyzeStock(ticker)) {
+      setPendingAnalysis({ ticker, style, imageBase64, question });
+      setShowPricingModal(true);
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
     setAnalysisResult({}); // Reset to an empty object for streaming
@@ -56,7 +65,8 @@ const App: React.FC = () => {
     const finalSources: GroundingSource[] = [];
 
     try {
-      const stream = analyzeStockStream(ticker, style, imageBase64, question, abortControllerRef.current.signal);
+      const analysisType = getAnalysisType(ticker);
+      const stream = analyzeStockStream(ticker, style, imageBase64, question, abortControllerRef.current.signal, analysisType);
 
       for await (const chunk of stream) {
           if (chunk.type !== 'sources') {
@@ -80,7 +90,8 @@ const App: React.FC = () => {
                 analysis: fullAnalysisResponse,
                 sources: finalSources,
             };
-            setHistory(prevHistory => [newHistoryItem, ...prevHistory.slice(0, 9)]);
+            setHistory([newHistoryItem, ...history.slice(0, 9)]);
+            addRegisteredStock(ticker);
        } else if (!abortControllerRef.current.signal.aborted) {
            setError("AIから有効な応答が得られませんでした。");
        }
@@ -93,7 +104,7 @@ const App: React.FC = () => {
       setIsLoading(false);
       abortControllerRef.current = null;
     }
-  }, [isLoading]);
+  }, [isLoading, canAnalyzeStock, addRegisteredStock, history]);
 
   const handleSelectHistory = useCallback((item: AnalysisHistoryItem) => {
     setAnalysisResult(item.analysis);
@@ -106,7 +117,31 @@ const App: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
-  if (loading) {
+  const handlePlanSelect = async (planId: string) => {
+    const success = await upgradePlan(planId);
+    if (success) {
+      setShowPricingModal(false);
+      if (pendingAnalysis) {
+        const { ticker, style, imageBase64, question } = pendingAnalysis;
+        setPendingAnalysis(null);
+        handleAnalyze(ticker, style, imageBase64, question);
+      }
+    }
+  };
+
+  const handleSingleStockPurchase = async (stockSymbol: string) => {
+    const success = await purchaseSingleStock(stockSymbol);
+    if (success) {
+      setShowPricingModal(false);
+      if (pendingAnalysis && pendingAnalysis.ticker === stockSymbol) {
+        const { ticker, style, imageBase64, question } = pendingAnalysis;
+        setPendingAnalysis(null);
+        handleAnalyze(ticker, style, imageBase64, question);
+      }
+    }
+  };
+
+  if (loading || subscriptionLoading) {
     return <div className="min-h-screen bg-gray-900 flex items-center justify-center">
       <div className="text-white">読み込み中...</div>
     </div>;
@@ -140,6 +175,10 @@ const App: React.FC = () => {
         </header>
 
         <div className="max-w-4xl mx-auto">
+          <SubscriptionBanner 
+            currentPlan={getCurrentPlan()}
+            onUpgrade={() => setShowPricingModal(true)}
+          />
           <InputForm isLoading={isLoading} onSubmit={handleAnalyze} />
           
           {error && (
@@ -172,6 +211,7 @@ const App: React.FC = () => {
                 <div className="flex items-center mb-4">
                     <HistoryIcon className="h-7 w-7 text-gray-400"/>
                     <h2 className="text-2xl font-bold text-gray-300 ml-3">分析履歴</h2>
+                    <span className="ml-auto text-xs text-gray-500 hidden sm:inline">最新の10件を表示</span>
                 </div>
                 <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 md:p-6 border border-gray-700 space-y-3 shadow-2xl">
                     {history.map(item => (
@@ -193,9 +233,24 @@ const App: React.FC = () => {
             </div>
         )}
       </main>
-       <footer className="text-center py-6 text-gray-500 text-sm">
+      
+      <KeyboardShortcuts 
+        onAnalyze={() => {
+          const form = document.querySelector('form');
+          if (form && !isLoading) {
+            form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+          }
+        }}
+        onCancel={handleCancel}
+        isLoading={isLoading}
+      />
+      
+      <footer className="text-center py-6 text-gray-500 text-sm">
         <p>これはAIによって生成された分析であり、投資助言ではありません。ご自身の判断で投資を行ってください。</p>
-        <p>&copy; 2024 AI株式アナリスト【株穴】. Powered by Google Gemini.</p>
+        <p>&copy; 2024 AI株式アナリスト【株穴】. All rights reserved.</p>
+        <p className="text-xs mt-2">
+          ショートカット: Ctrl+Enter (分析開始) | Escape (キャンセル)
+        </p>
       </footer>
     </div>
   );
