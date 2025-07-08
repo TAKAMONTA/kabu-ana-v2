@@ -6,6 +6,7 @@ import KeyboardShortcuts from './components/KeyboardShortcuts';
 import PricingModal from './components/subscription/PricingModal';
 import SubscriptionBanner from './components/subscription/SubscriptionBanner';
 import PlanFeaturesDisplay from './components/PlanFeaturesDisplay';
+import StockRegistration from './components/StockRegistration';
 import { useAuth } from './contexts/AuthContext';
 import { useSubscription } from './hooks/useSubscription';
 import { analyzeStockStream } from './services/geminiService';
@@ -182,7 +183,15 @@ const App: React.FC = () => {
             currentPlan={getCurrentPlan()}
             onUpgrade={() => setShowPricingModal(true)}
           />
-          <InputForm isLoading={isLoading} canAskQuestions={canAskQuestions()} onSubmit={handleAnalyze} />
+          
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <div className="lg:col-span-2">
+              <InputForm isLoading={isLoading} canAskQuestions={canAskQuestions()} onSubmit={handleAnalyze} />
+            </div>
+            <div>
+              <StockRegistration />
+            </div>
+          </div>
           
           {error && (
             <div className="mt-8 bg-red-900/50 border border-red-700 text-red-300 px-4 py-3 rounded-lg text-center animate-fade-in-up" role="alert">

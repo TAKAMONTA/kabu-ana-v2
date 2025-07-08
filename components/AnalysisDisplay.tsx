@@ -1,6 +1,7 @@
 import React from 'react';
 import { AnalysisResponse, GroundingSource } from '../types';
 import ScoreChart from './ScoreChart';
+import JapaneseScoreDisplay from './JapaneseScoreDisplay';
 import { ChartBarIcon, BookOpenIcon, ScaleIcon, LinkIcon } from './icons';
 import { formatCurrency, formatPercentage } from '../utils/formatters';
 
@@ -59,7 +60,9 @@ const AnalysisSection: React.FC<{
         <div className="flex items-center mb-4">
           {icon}
           <h3 className="text-xl font-bold ml-3 text-gray-200">{title}</h3>
-          <span className="ml-auto text-2xl font-bold text-blue-400">{score}<span className="text-base">/100</span></span>
+          <div className="ml-auto">
+            <JapaneseScoreDisplay score={score} type={title === 'テクニカル分析' ? 'technical' : 'fundamental'} />
+          </div>
         </div>
         <ul className="text-gray-400 leading-relaxed flex-grow space-y-2">
           {bulletPoints.map((point, index) => (
