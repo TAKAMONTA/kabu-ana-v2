@@ -50,6 +50,11 @@ const App: React.FC = () => {
     }
   };
 
+  const handleRegisterAndAnalyze = useCallback(async (ticker: string, style: InvestmentStyle, imageBase64: string | null, question: string) => {
+    await addRegisteredStock(ticker);
+    handleAnalyze(ticker, style, imageBase64, question);
+  }, [addRegisteredStock]);
+
   const handleAnalyze = useCallback(async (ticker: string, style: InvestmentStyle, imageBase64: string | null, question: string) => {
     if (isLoading) return;
 
@@ -186,7 +191,12 @@ const App: React.FC = () => {
           
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
             <div className="lg:col-span-2">
-              <InputForm isLoading={isLoading} canAskQuestions={canAskQuestions()} onSubmit={handleAnalyze} />
+              <InputForm 
+                isLoading={isLoading} 
+                canAskQuestions={canAskQuestions()} 
+                onSubmit={handleAnalyze}
+                onRegisterAndAnalyze={handleRegisterAndAnalyze}
+              />
             </div>
             <div>
               <StockRegistration />

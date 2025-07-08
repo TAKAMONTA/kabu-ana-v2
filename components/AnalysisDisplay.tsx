@@ -1,6 +1,6 @@
 import React from 'react';
 import { AnalysisResponse, GroundingSource } from '../types';
-import ScoreChart from './ScoreChart';
+import IntuitiveScoreDisplay from './IntuitiveScoreDisplay';
 import JapaneseScoreDisplay from './JapaneseScoreDisplay';
 import { ChartBarIcon, BookOpenIcon, ScaleIcon, LinkIcon } from './icons';
 import { formatCurrency, formatPercentage } from '../utils/formatters';
@@ -135,13 +135,17 @@ const AnalysisDisplay: React.FC<AnalysisDisplayProps> = ({ data, sources, canQue
           <AnalysisSection icon={<ChartBarIcon className="h-8 w-8 text-blue-400"/>} title="テクニカル分析" score={technicalAnalysis?.score} summary={technicalAnalysis?.summary} />
           <AnalysisSection icon={<BookOpenIcon className="h-8 w-8 text-blue-400"/>} title="ファンダメンタル分析" score={fundamentalAnalysis?.score} summary={fundamentalAnalysis?.summary} />
         </div>
-        <div className="lg:col-span-2 bg-gray-800/60 p-6 rounded-xl border border-gray-700 flex flex-col justify-center items-center">
-            <h3 className="text-xl font-bold mb-4 text-gray-200">スコアバランス</h3>
+        <div className="lg:col-span-2">
             {technicalAnalysis && fundamentalAnalysis ? (
-                 <ScoreChart technicalScore={technicalAnalysis.score} fundamentalScore={fundamentalAnalysis.score} />
+                 <IntuitiveScoreDisplay technicalScore={technicalAnalysis.score} fundamentalScore={fundamentalAnalysis.score} />
             ): (
-                <div className="w-full h-64 md:h-80 flex items-center justify-center animate-pulse">
-                    <div className="w-48 h-48 bg-gray-700 rounded-full"></div>
+                <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700 shadow-2xl">
+                    <h3 className="text-xl font-bold text-gray-200 mb-6 text-center">総合評価</h3>
+                    <div className="space-y-6 animate-pulse">
+                        <div className="h-16 bg-gray-700 rounded"></div>
+                        <div className="h-16 bg-gray-700 rounded"></div>
+                        <div className="h-20 bg-gray-700 rounded"></div>
+                    </div>
                 </div>
             )}
         </div>
