@@ -14,7 +14,7 @@ const AuthScreen: React.FC = () => {
             <ChartBarIcon className="h-10 w-10 text-blue-400" />
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">
-            AI株式アナリスト
+            AI株式アナリスト【株穴】
           </h1>
           <p className="mt-2 text-gray-400">
             {isLogin ? 'アカウントにログインしてください' : '新しいアカウントを作成してください'}

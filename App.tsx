@@ -124,7 +124,7 @@ const App: React.FC = () => {
                  <ChartBarIcon className="h-10 w-10 text-blue-400" />
             </div>
             <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">
-            AI株式アナリスト
+            AI株式アナリスト【株穴】
           </h1>
           <p className="mt-4 max-w-2xl mx-auto text-lg text-gray-400">
             銘柄を入力して、AIによるテクニカル＆ファンダメンタル分析を瞬時に取得します。
@@ -195,7 +195,7 @@ const App: React.FC = () => {
       </main>
        <footer className="text-center py-6 text-gray-500 text-sm">
         <p>これはAIによって生成された分析であり、投資助言ではありません。ご自身の判断で投資を行ってください。</p>
-        <p>&copy; 2024 AI株式アナリスト. Powered by Google Gemini.</p>
+        <p>&copy; 2024 AI株式アナリスト【株穴】. Powered by Google Gemini.</p>
       </footer>
     </div>
   );

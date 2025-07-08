@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "mkdir -p publish/dist && esbuild index.tsx --bundle --outfile=publish/dist/main.js --format=esm --external:react --external:react-dom/* --external:recharts --external:@google/genai --external:firebase/app --external:firebase/auth && cp index.html publish/"
+    "build": "mkdir -p publish/dist && esbuild index.tsx --bundle --outfile=publish/dist/main.js --format=esm --external:react --external:react-dom/* --external:recharts --external:@google/genai --external:firebase/app --external:firebase/auth --log-level=warning && cp index.html publish/"
   },
   "devDependencies": {
     "@types/react": "^18.2.0",
