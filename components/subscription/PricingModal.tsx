@@ -55,6 +55,21 @@ const PricingModal: React.FC<PricingModalProps> = ({
           <p className="text-gray-400 mt-2">
             より詳細な分析を受けるためにプランをアップグレードしてください
           </p>
+          
+          {/* 1ヶ月無料試用の案内 */}
+          <div className="mt-4 bg-gradient-to-r from-green-600 to-blue-600 rounded-lg p-4 border border-green-500">
+            <div className="flex items-center">
+              <svg className="w-6 h-6 text-white mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div>
+                <h3 className="text-lg font-bold text-white">🎉 新規登録特典</h3>
+                <p className="text-green-100 text-sm">
+                  初回登録後、<span className="font-bold text-white">スタンダード（竹）プランを1ヶ月間無料</span>でご利用いただけます！
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="p-6">
