@@ -191,7 +191,7 @@ const App: React.FC = () => {
       const initializeRevenueCat = async () => {
         try {
           const revenueCatService = RevenueCatService.getInstance();
-          await revenueCatService.configure('rc_web_api_key_placeholder', user.uid);
+          await revenueCatService.configure(import.meta.env.VITE_REVENUECAT_API_KEY || 'rc_web_api_key_placeholder', user.uid);
         } catch (error) {
           console.error('Failed to initialize RevenueCat:', error);
         }
