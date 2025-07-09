@@ -2,7 +2,7 @@ import React from 'react';
 import { AnalysisResponse, GroundingSource } from '../types';
 import IntuitiveScoreDisplay from './IntuitiveScoreDisplay';
 import JapaneseScoreDisplay from './JapaneseScoreDisplay';
-import { ChartBarIcon, BookOpenIcon, ScaleIcon, LinkIcon } from './icons';
+import { ChartBarIcon, BookOpenIcon, ScaleIcon, LinkIcon, BuildingIcon } from './icons';
 import { formatCurrency, formatPercentage } from '../utils/formatters';
 
 interface AnalysisDisplayProps {
@@ -100,7 +100,7 @@ const SourceLinks: React.FC<{ sources: GroundingSource[] }> = ({ sources }) => {
 };
 
 const AnalysisDisplay: React.FC<AnalysisDisplayProps> = ({ data, sources, ticker, canQuestionAnalysis = false, onQuestionAnalysis }) => {
-  const { priceInfo, technicalAnalysis, fundamentalAnalysis, overallJudgement, questionAnswer } = data;
+  const { priceInfo, companyOverview, technicalAnalysis, fundamentalAnalysis, overallJudgement, questionAnswer } = data;
 
   return (
     <div className="space-y-8 animate-fade-in-up">
@@ -129,6 +129,26 @@ const AnalysisDisplay: React.FC<AnalysisDisplayProps> = ({ data, sources, ticker
             [...Array(4)].map((_, i) => <div key={i} className="bg-gray-800/60 p-4 rounded-lg border border-gray-700 h-[88px] animate-pulse"></div>)
         )}
       </div>
+
+      {/* Company Overview */}
+      {companyOverview ? (
+        <div className="bg-gray-800/60 p-6 rounded-xl border border-gray-700">
+          <div className="flex items-center mb-4">
+            <BuildingIcon className="h-8 w-8 text-blue-400"/>
+            <h3 className="text-xl font-bold ml-3 text-gray-200">会社概要</h3>
+          </div>
+          <ul className="text-gray-400 leading-relaxed space-y-2">
+            {companyOverview.split(/[。．]/).filter(point => point.trim().length > 0).map((point, index) => (
+              <li key={index} className="flex items-start">
+                <span className="text-blue-400 mr-2 mt-1">•</span>
+                <span>{point.trim()}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : (
+        <div className="bg-gray-800/60 p-6 rounded-xl border border-gray-700 h-32 animate-pulse"></div>
+      )}
 
       {/* Main Analysis Sections */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">

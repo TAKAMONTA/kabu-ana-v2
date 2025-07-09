@@ -24,6 +24,7 @@ export interface OverallJudgementData {
 
 export interface AnalysisResponse {
   priceInfo?: PriceInfo;
+  companyOverview?: string;
   technicalAnalysis?: AnalysisSectionData;
   fundamentalAnalysis?: AnalysisSectionData;
   overallJudgement?: OverallJudgementData;
@@ -48,6 +49,7 @@ export interface AnalysisHistoryItem {
 
 export type AnalysisStreamChunk =
   | { type: 'priceInfo'; data: PriceInfo }
+  | { type: 'companyOverview'; data: string }
   | { type: 'technicalAnalysis'; data: AnalysisSectionData }
   | { type: 'fundamentalAnalysis'; data: AnalysisSectionData }
   | { type: 'overallJudgement'; data: OverallJudgementData }
