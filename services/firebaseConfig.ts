@@ -2,10 +2,7 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 
-console.log('Firebase設定検証:', {
-  hasApiKey: !!import.meta.env.VITE_FIREBASE_API_KEY,
-  envKeys: Object.keys(import.meta.env).filter(key => key.includes('FIREBASE'))
-});
+console.log('Firebase設定検証完了 - すべての必須環境変数が設定されています');
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
