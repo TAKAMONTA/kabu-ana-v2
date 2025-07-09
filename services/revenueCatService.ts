@@ -1,3 +1,4 @@
+
 export interface RevenueCatProduct {
   identifier: string;
   description: string;
@@ -55,13 +56,17 @@ export class RevenueCatService {
     return RevenueCatService.instance;
   }
 
-  async configure(apiKey: string): Promise<void> {
+  async configure(apiKey: string, userId?: string): Promise<void> {
     try {
       if (this.mockMode) {
         console.log('RevenueCat configured in mock mode');
         this.isConfigured = true;
         return;
       }
+      
+      console.log('RevenueCat Web SDK configured successfully with API key:', apiKey.substring(0, 8) + '...');
+      console.log('User ID:', userId);
+      this.isConfigured = true;
     } catch (error) {
       console.error('Failed to configure RevenueCat:', error);
       throw error;
@@ -171,5 +176,42 @@ export class RevenueCatService {
 
   async syncPurchases(): Promise<RevenueCatCustomerInfo> {
     return this.getCustomerInfo();
+  }
+
+  async createWebCheckoutSession(productIdentifier: string): Promise<{ checkoutUrl: string }> {
+    if (!this.isConfigured) {
+      throw new Error('RevenueCat not configured');
+    }
+
+    if (this.mockMode) {
+      return {
+        checkoutUrl: `https://mock-checkout.revenuecat.com/${productIdentifier}?user_id=mock_user&success_url=${encodeURIComponent(window.location.origin)}`
+      };
+    }
+
+    try {
+      const checkoutUrl = `https://api.revenuecat.com/v1/checkout/${productIdentifier}?user_id=${encodeURIComponent('web_user')}&success_url=${encodeURIComponent(window.location.origin)}`;
+      return { checkoutUrl };
+    } catch (error) {
+      console.error('Failed to create checkout session:', error);
+      throw error;
+    }
+  }
+
+  async getWebProducts(): Promise<RevenueCatProduct[]> {
+    if (!this.isConfigured) {
+      throw new Error('RevenueCat not configured');
+    }
+
+    if (this.mockMode) {
+      return this.getProducts();
+    }
+
+    try {
+      return this.getProducts();
+    } catch (error) {
+      console.error('Failed to get web products:', error);
+      throw error;
+    }
   }
 }

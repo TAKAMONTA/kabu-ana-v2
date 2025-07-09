@@ -9,6 +9,7 @@ import PlanFeaturesDisplay from './components/PlanFeaturesDisplay';
 import StockRegistration from './components/StockRegistration';
 import { useAuth } from './contexts/AuthContext';
 import { useSubscription } from './hooks/useSubscription';
+import { RevenueCatService } from './services/revenueCatService';
 import { analyzeStockStream } from './services/geminiService';
 import type { AnalysisResponse, InvestmentStyle, GroundingSource, AnalysisHistoryItem, AnalysisStreamChunk } from './types';
 import { ChartBarIcon, HistoryIcon, StopCircleIcon } from './components/icons';
@@ -25,6 +26,7 @@ const App: React.FC = () => {
     addRegisteredStock,
     purchaseSingleStock,
     upgradePlan,
+    createWebCheckout,
     loading: subscriptionLoading 
   } = useSubscription();
   const [analysisResult, setAnalysisResult] = useState<AnalysisResponse | null>(null);
@@ -40,6 +42,8 @@ const App: React.FC = () => {
     imageBase64: string | null;
     question: string;
   } | null>(null);
+  const [currentStock, setCurrentStock] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
 
@@ -61,6 +65,7 @@ const App: React.FC = () => {
 
     if (!canAnalyzeStock(ticker)) {
       setPendingAnalysis({ ticker, style, imageBase64, question });
+      setCurrentStock(ticker);
       setShowPricingModal(true);
       return;
     }
@@ -130,28 +135,70 @@ const App: React.FC = () => {
   }, []);
 
   const handlePlanSelect = async (planId: string) => {
-    const success = await upgradePlan(planId);
-    if (success) {
-      setShowPricingModal(false);
-      if (pendingAnalysis) {
-        const { ticker, style, imageBase64, question } = pendingAnalysis;
-        setPendingAnalysis(null);
-        handleAnalyze(ticker, style, imageBase64, question);
+    try {
+      const success = await upgradePlan(planId);
+      if (success) {
+        setToast({ message: 'プランをアップグレードしました', type: 'success' });
+        setShowPricingModal(false);
+        if (pendingAnalysis) {
+          const { ticker, style, imageBase64, question } = pendingAnalysis;
+          setPendingAnalysis(null);
+          handleAnalyze(ticker, style, imageBase64, question);
+        }
+      } else {
+        setToast({ message: 'プランのアップグレードに失敗しました', type: 'error' });
       }
+    } catch (error) {
+      console.error('Plan upgrade failed:', error);
+      setToast({ message: 'プランのアップグレードに失敗しました', type: 'error' });
     }
   };
 
   const handleSingleStockPurchase = async (stockSymbol: string) => {
-    const success = await purchaseSingleStock(stockSymbol);
-    if (success) {
-      setShowPricingModal(false);
-      if (pendingAnalysis && pendingAnalysis.ticker === stockSymbol) {
-        const { ticker, style, imageBase64, question } = pendingAnalysis;
-        setPendingAnalysis(null);
-        handleAnalyze(ticker, style, imageBase64, question);
+    try {
+      const success = await purchaseSingleStock(stockSymbol);
+      if (success) {
+        setToast({ message: `${stockSymbol}の分析権を購入しました`, type: 'success' });
+        setShowPricingModal(false);
+        if (pendingAnalysis && pendingAnalysis.ticker === stockSymbol) {
+          const { ticker, style, imageBase64, question } = pendingAnalysis;
+          setPendingAnalysis(null);
+          handleAnalyze(ticker, style, imageBase64, question);
+        }
+      } else {
+        setToast({ message: '購入に失敗しました', type: 'error' });
       }
+    } catch (error) {
+      console.error('Purchase failed:', error);
+      setToast({ message: '購入に失敗しました', type: 'error' });
     }
   };
+
+  const handleWebCheckout = async (productIdentifier: string) => {
+    try {
+      const checkoutSession = await createWebCheckout(productIdentifier);
+      console.log('Web checkout session created:', checkoutSession);
+      window.open(checkoutSession.checkoutUrl, '_blank');
+      setToast({ message: 'チェックアウトページを開きました', type: 'success' });
+    } catch (error) {
+      console.error('Web checkout failed:', error);
+      setToast({ message: 'チェックアウトに失敗しました', type: 'error' });
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      const initializeRevenueCat = async () => {
+        try {
+          const revenueCatService = RevenueCatService.getInstance();
+          await revenueCatService.configure('rc_web_api_key_placeholder', user.uid);
+        } catch (error) {
+          console.error('Failed to initialize RevenueCat:', error);
+        }
+      };
+      initializeRevenueCat();
+    }
+  }, [user]);
 
   if (loading || subscriptionLoading) {
     return <div className="min-h-screen bg-gray-900 flex items-center justify-center">
@@ -280,6 +327,30 @@ const App: React.FC = () => {
       
       <PlanFeaturesDisplay currentPlan={getCurrentPlan()} />
       
+      <PricingModal
+        isOpen={showPricingModal}
+        onClose={() => setShowPricingModal(false)}
+        onSelectPlan={handlePlanSelect}
+        onPurchaseSingleStock={handleSingleStockPurchase}
+        onWebCheckout={handleWebCheckout}
+        currentPlanId={getCurrentPlan().id}
+        targetStock={currentStock || undefined}
+      />
+
+      {toast && (
+        <div className={`fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 ${
+          toast.type === 'success' ? 'bg-green-600' : 'bg-red-600'
+        } text-white`}>
+          {toast.message}
+          <button
+            onClick={() => setToast(null)}
+            className="ml-4 text-white hover:text-gray-200"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       <footer className="text-center py-6 text-gray-500 text-sm">
         <p>これはAIによって生成された分析であり、投資助言ではありません。ご自身の判断で投資を行ってください。</p>
         <p>&copy; 2024 AI株式アナリスト【株穴】. All rights reserved.</p>

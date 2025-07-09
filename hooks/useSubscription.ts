@@ -7,7 +7,7 @@ import {
   SUBSCRIPTION_PLANS 
 } from '../services/subscriptionService';
 // import { FirestoreService } from '../services/firestoreService';
-// import { RevenueCatService } from '../services/revenueCatService';
+import { RevenueCatService } from '../services/revenueCatService';
 
 export const useSubscription = () => {
   const { user } = useAuth();
@@ -135,7 +135,13 @@ export const useSubscription = () => {
     if (!user) return false;
     
     try {
-      console.log('Mock: Upgrading to plan', planId);
+      console.log('Upgrading to plan via web checkout:', planId);
+      
+      const revenueCatService = RevenueCatService.getInstance();
+      const checkoutSession = await revenueCatService.createWebCheckoutSession(`${planId}_monthly`);
+      
+      console.log('Opening checkout URL:', checkoutSession.checkoutUrl);
+      window.open(checkoutSession.checkoutUrl, '_blank');
       
       const newSubscription: UserSubscription = {
         planId,
@@ -165,6 +171,10 @@ export const useSubscription = () => {
     canQuestionAnalysis: () => SubscriptionService.canQuestionAnalysis(subscription),
     addRegisteredStock,
     purchaseSingleStock,
-    upgradePlan
+    upgradePlan,
+    createWebCheckout: async (productIdentifier: string) => {
+      const revenueCatService = RevenueCatService.getInstance();
+      return revenueCatService.createWebCheckoutSession(productIdentifier);
+    }
   };
 };

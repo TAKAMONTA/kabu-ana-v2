@@ -7,6 +7,7 @@ interface PricingModalProps {
   onClose: () => void;
   onSelectPlan: (planId: string) => void;
   onPurchaseSingleStock: (stockSymbol: string) => void;
+  onWebCheckout?: (productIdentifier: string) => void;
   currentPlanId?: string;
   targetStock?: string;
 }
@@ -16,6 +17,7 @@ const PricingModal: React.FC<PricingModalProps> = ({
   onClose,
   onSelectPlan,
   onPurchaseSingleStock,
+  onWebCheckout,
   currentPlanId = 'free',
   targetStock
 }) => {
@@ -126,12 +128,25 @@ const PricingModal: React.FC<PricingModalProps> = ({
                 </ul>
 
                 {selectedPlan === plan.id && plan.id !== 'free' && (
-                  <button
-                    onClick={() => handlePlanSelect(plan.id)}
-                    className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors"
-                  >
-                    このプランを選択
-                  </button>
+                  <div className="space-y-2 mt-4">
+                    <button
+                      onClick={() => handlePlanSelect(plan.id)}
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors"
+                    >
+                      このプランを選択
+                    </button>
+                    {onWebCheckout && (
+                      <button
+                        onClick={() => onWebCheckout(`${plan.id}_monthly`)}
+                        className="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+                      >
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                        </svg>
+                        WEB決済で購入
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             ))}
