@@ -6,12 +6,12 @@ console.log('Firebase設定検証完了 - すべての必須環境変数が設�
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: "kabu-ana-4d439.firebaseapp.com",
-  projectId: "kabu-ana-4d439",
-  storageBucket: "kabu-ana-4d439.firebasestorage.app",
-  messagingSenderId: "576150778556",
-  appId: "1:576150778556:web:afd571165894da2d6256b9",
-  measurementId: "G-DJR20L5VCF"
+  authDomain: "kabuanacom.firebaseapp.com",
+  projectId: "kabuanacom",
+  storageBucket: "kabuanacom.firebasestorage.app",
+  messagingSenderId: "56179287169",
+  appId: "1:56179287169:web:a9c872e0498c59b3509980",
+  measurementId: "G-M0PT244D3Q"
 };
 
 if (!firebaseConfig.apiKey) {
