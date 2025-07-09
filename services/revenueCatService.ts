@@ -1,4 +1,6 @@
 
+import { Purchases } from '@revenuecat/purchases-js';
+
 export interface RevenueCatProduct {
   identifier: string;
   description: string;
@@ -47,7 +49,7 @@ export interface RevenueCatCustomerInfo {
 export class RevenueCatService {
   private static instance: RevenueCatService;
   private isConfigured = false;
-  private mockMode = true;
+  private mockMode = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
   static getInstance(): RevenueCatService {
     if (!RevenueCatService.instance) {
@@ -64,9 +66,12 @@ export class RevenueCatService {
         return;
       }
       
-      console.log('RevenueCat Web SDK configured successfully with API key:', apiKey.substring(0, 8) + '...');
-      console.log('User ID:', userId);
+      const purchasesInstance = Purchases.configure({
+        apiKey: apiKey,
+        appUserId: userId || 'anonymous'
+      });
       this.isConfigured = true;
+      console.log('RevenueCat Web SDK configured successfully');
     } catch (error) {
       console.error('Failed to configure RevenueCat:', error);
       throw error;
@@ -115,7 +120,28 @@ export class RevenueCatService {
       ];
     }
 
-    throw new Error('RevenueCat integration not implemented for production');
+    try {
+      const offerings = await Purchases.getSharedInstance().getOfferings();
+      const products: RevenueCatProduct[] = [];
+      
+      if (offerings.current) {
+        for (const pkg of offerings.current.availablePackages) {
+          products.push({
+            identifier: pkg.identifier,
+            description: pkg.webBillingProduct.description || '',
+            title: pkg.webBillingProduct.title,
+            price: pkg.webBillingProduct.currentPrice.amountMicros / 1000000,
+            priceString: pkg.webBillingProduct.currentPrice.formattedPrice,
+            currencyCode: pkg.webBillingProduct.currentPrice.currency
+          });
+        }
+      }
+      
+      return products;
+    } catch (error) {
+      console.error('Failed to get products:', error);
+      throw error;
+    }
   }
 
   async purchaseProduct(productIdentifier: string): Promise<RevenueCatPurchase> {
@@ -143,7 +169,45 @@ export class RevenueCatService {
       };
     }
 
-    throw new Error('RevenueCat integration not implemented for production');
+    try {
+      const offerings = await Purchases.getSharedInstance().getOfferings();
+      let targetPackage = null;
+      
+      if (offerings.current) {
+        targetPackage = offerings.current.availablePackages.find((pkg: any) => 
+          pkg.identifier === productIdentifier
+        );
+      }
+      
+      if (!targetPackage) {
+        throw new Error(`Package ${productIdentifier} not found`);
+      }
+      
+      const purchaseResult = await Purchases.getSharedInstance().purchase({
+        rcPackage: targetPackage
+      });
+      
+      const customerInfo = purchaseResult.customerInfo;
+      const now = new Date().toISOString();
+      
+      return {
+        productIdentifier,
+        purchaseDate: now,
+        transactionIdentifier: `web_${Date.now()}`,
+        originalTransactionIdentifier: `web_${Date.now()}`,
+        isActive: true,
+        willRenew: productIdentifier.includes('monthly'),
+        periodType: 'NORMAL',
+        latestPurchaseDate: now,
+        originalPurchaseDate: now,
+        expirationDate: productIdentifier.includes('monthly') 
+          ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+          : undefined
+      };
+    } catch (error) {
+      console.error('Failed to purchase product:', error);
+      throw error;
+    }
   }
 
   async getCustomerInfo(): Promise<RevenueCatCustomerInfo> {
@@ -167,7 +231,29 @@ export class RevenueCatService {
       };
     }
 
-    throw new Error('RevenueCat integration not implemented for production');
+    try {
+      const customerInfo = await Purchases.getSharedInstance().getCustomerInfo();
+      return {
+        originalAppUserId: customerInfo.originalAppUserId,
+        requestDate: customerInfo.requestDate.toISOString(),
+        firstSeen: customerInfo.firstSeenDate.toISOString(),
+        activeSubscriptions: Array.from(customerInfo.activeSubscriptions),
+        allPurchasesByProduct: {},
+        allExpirationDatesByProduct: Object.fromEntries(
+          Object.entries(customerInfo.allExpirationDatesByProduct).map(([key, value]) => [
+            key, 
+            value ? value.toISOString() : null
+          ])
+        ) as { [key: string]: string },
+        entitlements: {
+          active: {} as { [key: string]: RevenueCatPurchase },
+          all: {} as { [key: string]: RevenueCatPurchase }
+        }
+      };
+    } catch (error) {
+      console.error('Failed to get customer info:', error);
+      throw error;
+    }
   }
 
   async restorePurchases(): Promise<RevenueCatCustomerInfo> {
@@ -184,14 +270,61 @@ export class RevenueCatService {
     }
 
     if (this.mockMode) {
+      const mockCheckoutPage = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Mock RevenueCat Checkout</title>
+          <meta charset="UTF-8">
+          <style>
+            body { font-family: Arial, sans-serif; padding: 40px; background: #f5f5f5; }
+            .container { max-width: 500px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+            .header { text-align: center; margin-bottom: 30px; }
+            .product { background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; }
+            .button { background: #007bff; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; width: 100%; font-size: 16px; }
+            .button:hover { background: #0056b3; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header">
+              <h1>🛒 Mock RevenueCat Checkout</h1>
+              <p>これはテスト用のモックチェックアウトページです</p>
+            </div>
+            <div class="product">
+              <h3>商品: ${productIdentifier}</h3>
+              <p>実際の本番環境では、ここでRevenueCatの決済フローが開始されます。</p>
+            </div>
+            <button class="button" onclick="window.close()">チェックアウトを閉じる</button>
+          </div>
+        </body>
+        </html>
+      `;
+      
       return {
-        checkoutUrl: `https://mock-checkout.revenuecat.com/${productIdentifier}?user_id=mock_user&success_url=${encodeURIComponent(window.location.origin)}`
+        checkoutUrl: `data:text/html;charset=utf-8,${encodeURIComponent(mockCheckoutPage)}`
       };
     }
 
     try {
-      const checkoutUrl = `https://api.revenuecat.com/v1/checkout/${productIdentifier}?user_id=${encodeURIComponent('web_user')}&success_url=${encodeURIComponent(window.location.origin)}`;
-      return { checkoutUrl };
+      const offerings = await Purchases.getSharedInstance().getOfferings();
+      let targetPackage = null;
+      
+      if (offerings.current) {
+        targetPackage = offerings.current.availablePackages.find((pkg: any) => 
+          pkg.identifier === productIdentifier
+        );
+      }
+      
+      if (!targetPackage) {
+        throw new Error(`Package ${productIdentifier} not found`);
+      }
+      
+      const {customerInfo} = await Purchases.getSharedInstance().purchase({
+        rcPackage: targetPackage
+      });
+      
+      return { checkoutUrl: window.location.origin + '?purchase=success' };
     } catch (error) {
       console.error('Failed to create checkout session:', error);
       throw error;
