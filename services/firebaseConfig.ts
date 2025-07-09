@@ -2,8 +2,13 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 
+console.log('Firebase設定検証:', {
+  hasApiKey: !!import.meta.env.VITE_FIREBASE_API_KEY,
+  envKeys: Object.keys(import.meta.env).filter(key => key.includes('FIREBASE'))
+});
+
 const firebaseConfig = {
-  apiKey: import.meta.env?.VITE_FIREBASE_API_KEY,
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: "kabu-ana-4d439.firebaseapp.com",
   projectId: "kabu-ana-4d439",
   storageBucket: "kabu-ana-4d439.firebasestorage.app",
@@ -11,6 +16,11 @@ const firebaseConfig = {
   appId: "1:576150778556:web:afd571165894da2d6256b9",
   measurementId: "G-DJR20L5VCF"
 };
+
+if (!firebaseConfig.apiKey) {
+  console.error('Firebase API key not found in environment variables');
+  throw new Error('Firebase設定エラー: API keyが環境変数に設定されていません');
+}
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);

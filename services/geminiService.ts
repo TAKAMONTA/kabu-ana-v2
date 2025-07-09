@@ -2,7 +2,7 @@
 import { GoogleGenAI } from "@google/genai";
 import { AnalysisResponse, GroundingSource, InvestmentStyle, AnalysisStreamChunk } from "../types";
 
-const API_KEY = import.meta.env?.VITE_GEMINI_API_KEY;
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
 if (!API_KEY) {
     throw new Error("API_KEYが環境変数に設定されていません。");
