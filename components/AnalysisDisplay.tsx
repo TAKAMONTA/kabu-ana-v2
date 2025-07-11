@@ -114,7 +114,7 @@ const AnalysisDisplay: React.FC<AnalysisDisplayProps> = ({ data, sources, ticker
                 </div>
                 <div className="bg-gray-800/60 p-4 rounded-lg border border-gray-700 hover:bg-gray-700/60 transition-colors">
                     <p className="text-sm text-gray-400">前日比</p>
-                    <p className={`text-2xl font-bold ${priceInfo.change.startsWith('+') ? 'text-green-400' : 'text-red-400'}`}>{formatPercentage(priceInfo.change)}</p>
+                    <p className={`text-2xl font-bold ${priceInfo.change && priceInfo.change.startsWith('+') ? 'text-green-400' : 'text-red-400'}`}>{formatPercentage(priceInfo.change)}</p>
                 </div>
                 <div className="bg-gray-800/60 p-4 rounded-lg border border-gray-700 hover:bg-gray-700/60 transition-colors">
                     <p className="text-sm text-gray-400">高値</p>

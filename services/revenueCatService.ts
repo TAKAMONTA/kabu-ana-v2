@@ -66,6 +66,13 @@ export class RevenueCatService {
         return;
       }
       
+      if (!apiKey || apiKey === 'test_key' || apiKey === 'rc_web_api_key_placeholder' || apiKey.includes('placeholder')) {
+        console.warn('RevenueCat: Invalid or placeholder API key detected, running in mock mode');
+        this.mockMode = true;
+        this.isConfigured = true;
+        return;
+      }
+      
       const purchasesInstance = Purchases.configure({
         apiKey: apiKey,
         appUserId: userId || 'anonymous'
@@ -74,7 +81,9 @@ export class RevenueCatService {
       console.log('RevenueCat Web SDK configured successfully');
     } catch (error) {
       console.error('Failed to configure RevenueCat:', error);
-      throw error;
+      console.warn('RevenueCat: Falling back to mock mode due to configuration error');
+      this.mockMode = true;
+      this.isConfigured = true;
     }
   }
 
