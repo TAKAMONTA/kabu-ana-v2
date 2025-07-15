@@ -4,7 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "npm run build && python3 -m http.server 8080 --directory publish",
-    "build": "mkdir -p publish/dist && esbuild index.tsx --bundle --outfile=publish/dist/main.js --format=esm --external:react --external:react-dom/* --external:recharts --external:@google/genai --external:firebase/app --external:firebase/auth --external:@revenuecat/purchases-js --log-level=warning --define:import.meta.env.VITE_GEMINI_API_KEY='\"'${VITE_GEMINI_API_KEY}'\"' --define:import.meta.env.VITE_FIREBASE_API_KEY='\"'${VITE_FIREBASE_API_KEY}'\"' --define:import.meta.env.VITE_REVENUECAT_API_KEY='\"'${VITE_REVENUECAT_API_KEY}'\"' && cp index.html publish/ && cp index.css publish/"
+    "build": "mkdir -p publish/dist && esbuild index.tsx --bundle --outfile=publish/dist/main.js --format=esm --external:react --external:react-dom/* --external:recharts --external:@google/genai --external:firebase/app --external:firebase/auth --external:@revenuecat/purchases-js --log-level=warning --define:import.meta.env.VITE_GEMINI_API_KEY='\"'${VITE_GEMINI_API_KEY}'\"' --define:import.meta.env.VITE_FIREBASE_API_KEY='\"'${VITE_FIREBASE_API_KEY}'\"' --define:import.meta.env.VITE_REVENUECAT_API_KEY='\"'${VITE_REVENUECAT_API_KEY}'\"' && cp index.html publish/ && cp index.css publish/",
+    "android": "expo run:android",
+    "ios": "expo run:ios"
   },
   "devDependencies": {
     "@types/react": "^18.2.0",
@@ -13,6 +15,9 @@
     "typescript": "^5.4.5"
   },
   "dependencies": {
-    "recharts": "^3.0.2"
+    "expo": "^53.0.19",
+    "recharts": "^3.0.2",
+    "react": "19.0.0",
+    "react-native": "0.79.5"
   }
 }
