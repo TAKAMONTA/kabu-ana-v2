@@ -1,0 +1,10 @@
+{
+  "expo": {
+    "name": "AI Stock Analyst JP",
+    "slug": "ai-stock-analyst-jp",
+    "version": "1.0.0",
+    "android": {
+      "package": "com.takaapps.kabunavi"
+    }
+  }
+}
