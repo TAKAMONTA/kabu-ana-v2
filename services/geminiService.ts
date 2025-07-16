@@ -23,7 +23,7 @@ const genAI = new GoogleGenerativeAI(API_KEY);
 
 async function validateApiKey(): Promise<boolean> {
     try {
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
         const result = await model.generateContent("Test");
         return true;
     } catch (error: any) {
@@ -40,7 +40,7 @@ async function getHealthyModel(): Promise<any> {
     if (!isValid) {
         throw new ApiError('Gemini API key is invalid. Please update your API key.', 401, false);
     }
-    return genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    return genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 }
 
 function buildPrompt(ticker: string, style: InvestmentStyle, question: string | null): string {
