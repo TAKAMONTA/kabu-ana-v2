@@ -1,14 +1,47 @@
 
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { AnalysisResponse, GroundingSource, InvestmentStyle, AnalysisStreamChunk } from "../types";
+import { RobustApiClient, RetryConfig, ApiError, createRetryConfig } from "./apiUtils";
 
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || "your-gemini-api-key";
 
-if (!API_KEY) {
-    throw new Error("API_KEYが環境変数に設定されていません。");
+const GEMINI_RETRY_CONFIG: RetryConfig = createRetryConfig({
+  maxRetries: 3,
+  baseDelay: 1000,
+  maxDelay: 10000,
+  backoffMultiplier: 2,
+  retryableErrors: ['RATE_LIMIT_EXCEEDED', 'INTERNAL_ERROR', 'TIMEOUT', 'NETWORK_ERROR', 'API key not valid']
+});
+
+const apiClient = new RobustApiClient();
+
+if (!API_KEY || API_KEY === "your-gemini-api-key") {
+    console.warn("Gemini API key not configured properly");
 }
 
-const ai = new GoogleGenAI({ apiKey: API_KEY });
+const genAI = new GoogleGenerativeAI(API_KEY);
+
+async function validateApiKey(): Promise<boolean> {
+    try {
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const result = await model.generateContent("Test");
+        return true;
+    } catch (error: any) {
+        if (error.message?.includes('API key not valid') || error.message?.includes('API_KEY_INVALID')) {
+            console.error('Gemini API key is invalid or expired');
+            return false;
+        }
+        return true;
+    }
+}
+
+async function getHealthyModel(): Promise<any> {
+    const isValid = await validateApiKey();
+    if (!isValid) {
+        throw new ApiError('Gemini API key is invalid. Please update your API key.', 401, false);
+    }
+    return genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+}
 
 function buildPrompt(ticker: string, style: InvestmentStyle, question: string | null): string {
     return `あなたはプロの株式アナリストです。以下の情報に基づいて、包括的な株式分析レポートを生成してください。
@@ -50,31 +83,37 @@ export async function* analyzeStockStream(
     signal: AbortSignal
 ): AsyncGenerator<AnalysisStreamChunk> {
     try {
-        const prompt = buildPrompt(ticker, style, question || null);
-        
-        const contentParts: any[] = [{ text: prompt }];
+        const operation = async () => {
+            if (signal.aborted) {
+                throw new Error('AbortError');
+            }
 
-        if (imageBase64) {
-            contentParts.push({
-                inlineData: {
-                    mimeType: 'image/jpeg',
-                    data: imageBase64,
-                },
-            });
-        }
+            const model = await getHealthyModel();
+            const prompt = buildPrompt(ticker, style, question || null);
+            const contentParts: any[] = [{ text: prompt }];
 
-        const responseGenerator = await ai.models.generateContentStream({
-            model: "gemini-2.5-flash-preview-04-17",
-            contents: { parts: contentParts },
-            config: {
-                tools: [{ googleSearch: {} }],
-            },
-        });
+            if (imageBase64) {
+                contentParts.push({
+                    inlineData: {
+                        mimeType: 'image/jpeg',
+                        data: imageBase64,
+                    },
+                });
+            }
+
+            return await model.generateContentStream(contentParts);
+        };
+
+        const responseGenerator = await apiClient.executeWithRetry(
+            operation,
+            GEMINI_RETRY_CONFIG,
+            'gemini-analysis'
+        );
         
         let buffer = '';
         const allSources: GroundingSource[] = [];
 
-        for await (const chunk of responseGenerator) {
+        for await (const chunk of responseGenerator.stream) {
             if (signal.aborted) {
                 return;
             }
@@ -84,7 +123,9 @@ export async function* analyzeStockStream(
                 allSources.push(...sourcesInChunk as GroundingSource[]);
             }
 
-            buffer += chunk.text;
+            const chunkText = chunk.text || '';
+            buffer += chunkText;
+            
             let newlineIndex;
             while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
                 const line = buffer.slice(0, newlineIndex).trim();
@@ -99,7 +140,7 @@ export async function* analyzeStockStream(
                 }
             }
         }
-        // Process any remaining data in the buffer
+        
         if (buffer.trim()) {
             try {
                 const parsed = JSON.parse(buffer.trim()) as AnalysisStreamChunk;
@@ -117,12 +158,61 @@ export async function* analyzeStockStream(
         }
 
     } catch (error: any) {
-        if (error.name === 'AbortError') {
+        if (error.name === 'AbortError' || signal.aborted) {
             console.log("Stream aborted by user.");
             return;
         }
+        
         console.error("Error analyzing stock:", error);
-        const errorMessage = error.message || "AIによる分析中にエラーが発生しました。";
-        throw new Error(`分析エラー: ${errorMessage}`);
+        
+        if (error instanceof ApiError && !error.isRetryable) {
+            yield* handleAnalysisError(error, ticker);
+        } else {
+            const errorMessage = error.message || "AIによる分析中にエラーが発生しました。";
+            throw new ApiError(`分析エラー: ${errorMessage}`, error.statusCode, error.isRetryable, error);
+        }
     }
 };
+
+async function* handleAnalysisError(error: ApiError, ticker: string): AsyncGenerator<AnalysisStreamChunk> {
+    console.warn(`Providing fallback analysis for ${ticker} due to API error:`, error.message);
+    
+    yield {
+        type: 'priceInfo',
+        data: {
+            price: 'データ取得不可',
+            dayHigh: 'N/A',
+            dayLow: 'N/A',
+            change: 'N/A'
+        }
+    };
+    
+    yield {
+        type: 'companyOverview',
+        data: `${ticker}の詳細分析は現在利用できません。APIサービスに問題が発生しています。しばらく時間をおいて再度お試しください。エラー: ${error.message}`
+    };
+    
+    yield {
+        type: 'technicalAnalysis',
+        data: {
+            score: 0,
+            summary: 'テクニカル分析は現在利用できません。APIサービスの復旧をお待ちください。'
+        }
+    };
+    
+    yield {
+        type: 'fundamentalAnalysis',
+        data: {
+            score: 0,
+            summary: 'ファンダメンタル分析は現在利用できません。APIサービスの復旧をお待ちください。'
+        }
+    };
+    
+    yield {
+        type: 'overallJudgement',
+        data: {
+            decision: '様子見',
+            summary: 'APIサービスの問題により、現在正確な投資判断を提供できません。サービス復旧後に再度分析をお試しください。'
+        }
+    };
+}

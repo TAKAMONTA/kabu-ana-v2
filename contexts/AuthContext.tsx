@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, auth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, signInWithPopup, googleProvider } from '../services/firebaseConfig';
+import { User, auth, onAuthStateChanged, robustSignInWithEmailAndPassword, robustCreateUserWithEmailAndPassword, signOut, robustSignInWithPopup, googleProvider } from '../services/firebaseConfig';
 
 interface AuthContextType {
   user: User | null;
@@ -33,15 +33,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async (email: string, password: string) => {
-    await signInWithEmailAndPassword(auth, email, password);
+    await robustSignInWithEmailAndPassword(email, password);
   };
 
   const signup = async (email: string, password: string) => {
-    await createUserWithEmailAndPassword(auth, email, password);
+    await robustCreateUserWithEmailAndPassword(email, password);
   };
 
   const loginWithGoogle = async () => {
-    await signInWithPopup(auth, googleProvider);
+    await robustSignInWithPopup(googleProvider);
   };
 
   const logout = async () => {

@@ -1,5 +1,16 @@
 
 import { Purchases } from '@revenuecat/purchases-js';
+import { RobustApiClient, RetryConfig, createRetryConfig } from "./apiUtils";
+
+const REVENUECAT_RETRY_CONFIG: RetryConfig = createRetryConfig({
+  maxRetries: 2,
+  baseDelay: 1000,
+  maxDelay: 5000,
+  backoffMultiplier: 2,
+  retryableErrors: ['NETWORK_ERROR', 'TIMEOUT', 'INTERNAL_ERROR', 'BILLING_UNAVAILABLE']
+});
+
+const apiClient = new RobustApiClient();
 
 export interface RevenueCatProduct {
   identifier: string;
@@ -73,14 +84,18 @@ export class RevenueCatService {
         return;
       }
       
-      const purchasesInstance = Purchases.configure({
-        apiKey: apiKey,
-        appUserId: userId || 'anonymous'
-      });
+      const operation = async () => {
+        return Purchases.configure({
+          apiKey: apiKey,
+          appUserId: userId || 'anonymous'
+        });
+      };
+      
+      await apiClient.executeWithRetry(operation, REVENUECAT_RETRY_CONFIG, 'revenuecat-configure');
       this.isConfigured = true;
       console.log('RevenueCat Web SDK configured successfully');
     } catch (error) {
-      console.error('Failed to configure RevenueCat:', error);
+      console.error('Failed to configure RevenueCat after retries:', error);
       console.warn('RevenueCat: Falling back to mock mode due to configuration error');
       this.mockMode = true;
       this.isConfigured = true;
@@ -130,25 +145,29 @@ export class RevenueCatService {
     }
 
     try {
-      const offerings = await Purchases.getSharedInstance().getOfferings();
-      const products: RevenueCatProduct[] = [];
-      
-      if (offerings.current) {
-        for (const pkg of offerings.current.availablePackages) {
-          products.push({
-            identifier: pkg.identifier,
-            description: pkg.webBillingProduct.description || '',
-            title: pkg.webBillingProduct.title,
-            price: pkg.webBillingProduct.currentPrice.amountMicros / 1000000,
-            priceString: pkg.webBillingProduct.currentPrice.formattedPrice,
-            currencyCode: pkg.webBillingProduct.currentPrice.currency
-          });
+      const operation = async () => {
+        const offerings = await Purchases.getSharedInstance().getOfferings();
+        const products: RevenueCatProduct[] = [];
+        
+        if (offerings.current) {
+          for (const pkg of offerings.current.availablePackages) {
+            products.push({
+              identifier: pkg.identifier,
+              description: pkg.webBillingProduct.description || '',
+              title: pkg.webBillingProduct.title,
+              price: pkg.webBillingProduct.currentPrice.amountMicros / 1000000,
+              priceString: pkg.webBillingProduct.currentPrice.formattedPrice,
+              currencyCode: pkg.webBillingProduct.currentPrice.currency
+            });
+          }
         }
-      }
+        
+        return products;
+      };
       
-      return products;
+      return await apiClient.executeWithRetry(operation, REVENUECAT_RETRY_CONFIG, 'revenuecat-get-products');
     } catch (error) {
-      console.error('Failed to get products:', error);
+      console.error('Failed to get products after retries:', error);
       throw error;
     }
   }

@@ -114,7 +114,29 @@ const App: React.FC = () => {
 
     } catch (e: any) {
        if (e.name !== 'AbortError') {
-         setError(e.message || "不明なエラーが発生しました。");
+         let userFriendlyMessage = "不明なエラーが発生しました。";
+         
+         if (e.name === 'ApiError') {
+           if (e.statusCode === 401) {
+             userFriendlyMessage = "APIキーが無効です。設定を確認してください。";
+           } else if (e.statusCode === 429) {
+             userFriendlyMessage = "リクエストが多すぎます。しばらく時間をおいて再度お試しください。";
+           } else if (e.statusCode === 503) {
+             userFriendlyMessage = "サービスが一時的に利用できません。しばらく時間をおいて再度お試しください。";
+           } else if (e.isRetryable) {
+             userFriendlyMessage = "一時的なエラーが発生しました。自動的に再試行しています...";
+           } else {
+             userFriendlyMessage = e.message || userFriendlyMessage;
+           }
+         } else if (e.message?.includes('API key not valid')) {
+           userFriendlyMessage = "Gemini APIキーが無効です。有効なAPIキーを設定してください。";
+         } else if (e.message?.includes('RATE_LIMIT_EXCEEDED')) {
+           userFriendlyMessage = "API利用制限に達しました。しばらく時間をおいて再度お試しください。";
+         } else {
+           userFriendlyMessage = e.message || userFriendlyMessage;
+         }
+         
+         setError(userFriendlyMessage);
        }
     } finally {
       setIsLoading(false);
@@ -191,7 +213,7 @@ const App: React.FC = () => {
       const initializeRevenueCat = async () => {
         try {
           const revenueCatService = RevenueCatService.getInstance();
-          await revenueCatService.configure(import.meta.env.VITE_REVENUECAT_API_KEY || 'rc_web_api_key_placeholder', user.uid);
+          await revenueCatService.configure('rc_web_api_key_placeholder', user.uid);
         } catch (error) {
           console.error('Failed to initialize RevenueCat:', error);
         }
