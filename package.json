@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "npm run build && python3 -m http.server 8080 --directory publish",
-    "build": "mkdir -p publish/dist && esbuild index.tsx --bundle --outfile=publish/dist/main.js --format=esm --external:react --external:react-dom/* --external:recharts --external:@google/genai --external:firebase/app --external:firebase/auth --external:@revenuecat/purchases-js --log-level=warning --define:import.meta.env.VITE_GEMINI_API_KEY='\"'${VITE_GEMINI_API_KEY}'\"' --define:import.meta.env.VITE_FIREBASE_API_KEY='\"'${VITE_FIREBASE_API_KEY}'\"' --define:import.meta.env.VITE_REVENUECAT_API_KEY='\"'${VITE_REVENUECAT_API_KEY}'\"' && cp index.html publish/ && cp index.css publish/",
+    "build": "mkdir -p publish/dist && esbuild index.web.tsx --bundle --outfile=publish/dist/main.js --format=esm --external:react --external:react-dom/* --external:recharts --external:firebase/app --external:firebase/auth --external:@revenuecat/purchases-js --log-level=warning --define:import.meta.env.VITE_GEMINI_API_KEY='\"'${VITE_GEMINI_API_KEY}'\"' --define:import.meta.env.VITE_FIREBASE_API_KEY='\"'${VITE_FIREBASE_API_KEY}'\"' --define:import.meta.env.VITE_FIREBASE_AUTH_DOMAIN='\"'${VITE_FIREBASE_AUTH_DOMAIN}'\"' --define:import.meta.env.VITE_FIREBASE_PROJECT_ID='\"'${VITE_FIREBASE_PROJECT_ID}'\"' --define:import.meta.env.VITE_FIREBASE_STORAGE_BUCKET='\"'${VITE_FIREBASE_STORAGE_BUCKET}'\"' --define:import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID='\"'${VITE_FIREBASE_MESSAGING_SENDER_ID}'\"' --define:import.meta.env.VITE_FIREBASE_APP_ID='\"'${VITE_FIREBASE_APP_ID}'\"' --define:import.meta.env.VITE_FIREBASE_MEASUREMENT_ID='\"'${VITE_FIREBASE_MEASUREMENT_ID}'\"' --define:import.meta.env.VITE_REVENUECAT_API_KEY='\"'${VITE_REVENUECAT_API_KEY}'\"' && cp index.html publish/ && cp index.css publish/",
     "android": "expo run:android",
     "ios": "expo run:ios"
   },
@@ -15,6 +15,7 @@
     "typescript": "^5.4.5"
   },
   "dependencies": {
+    "@google/genai": "^1.9.0",
     "@google/generative-ai": "^0.24.1",
     "@revenuecat/purchases-js": "^1.9.0",
     "expo": "^53.0.19",
