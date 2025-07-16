@@ -16,13 +16,13 @@ const apiClient = new RobustApiClient();
 console.log('Firebase設定検証完了 - すべての必須環境変数が設定されています');
 
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "your-firebase-api-key",
-  authDomain: "kabu-ana-4d439.firebaseapp.com",
-  projectId: "kabu-ana-4d439", 
-  storageBucket: "kabu-ana-4d439.firebasestorage.app",
-  messagingSenderId: "576150778556",
-  appId: "1:576150778556:web:afd571165894da2d6256b9",
-  measurementId: "G-DJR20L5VCF"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
 if (!firebaseConfig.apiKey) {
