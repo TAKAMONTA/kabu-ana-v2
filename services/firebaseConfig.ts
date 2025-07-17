@@ -13,8 +13,6 @@ const FIREBASE_RETRY_CONFIG: RetryConfig = createRetryConfig({
 
 const apiClient = new RobustApiClient();
 
-console.log('Firebase設定検証完了 - すべての必須環境変数が設定されています');
-
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
@@ -25,10 +23,18 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
+console.log('Firebase設定デバッグ:', {
+  apiKey: firebaseConfig.apiKey ? `${firebaseConfig.apiKey.substring(0, 20)}...` : 'undefined',
+  authDomain: firebaseConfig.authDomain || 'undefined',
+  projectId: firebaseConfig.projectId || 'undefined'
+});
+
 if (!firebaseConfig.apiKey) {
   console.error('Firebase API key not found in environment variables');
   throw new Error('Firebase設定エラー: API keyが環境変数に設定されていません');
 }
+
+console.log('Firebase設定検証完了 - すべての必須環境変数が設定されています');
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
