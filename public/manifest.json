@@ -1,4 +1,5 @@
 {
+<<<<<<< HEAD
   "name": "AI株式分析アプリ",
   "short_name": "株分析AI",
   "description": "AI駆動の株式テクニカル・ファンダメンタル分析ツール",
@@ -25,3 +26,31 @@
   "related_applications": [],
   "prefer_related_applications": false
 }
+=======
+  "name": "株穴 - AI株式分析プラットフォーム",
+  "short_name": "株穴",
+  "description": "AIによる高度な株式分析で投資判断をサポート",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#059669",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["finance", "business", "productivity"],
+  "lang": "ja",
+  "dir": "ltr"
+}
+>>>>>>> 63c8400919333443c24ba6cc3c3a6ad87153c33b

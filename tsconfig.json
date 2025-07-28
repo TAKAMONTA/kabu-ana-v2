@@ -1,4 +1,5 @@
 {
+<<<<<<< HEAD
   "compilerOptions": {
     "target": "ES2020",
     "module": "ESNext",
@@ -20,4 +21,11 @@
   },
   "include": ["src"],
   "exclude": ["node_modules", "dist", "build"]
+=======
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.node.json" }
+  ]
+>>>>>>> 63c8400919333443c24ba6cc3c3a6ad87153c33b
 }
