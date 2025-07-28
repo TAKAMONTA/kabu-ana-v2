@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- 背景 -->
+  <rect width="512" height="512" rx="64" fill="url(#gradient)"/>
+  
+  <!-- グラデーション定義 -->
+  <defs>
+    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1e40af"/>
+      <stop offset="100%" style="stop-color:#3b82f6"/>
+    </linearGradient>
+    
+    <!-- ハイライト用グラデーション -->
+    <linearGradient id="highlight" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#60a5fa"/>
+      <stop offset="100%" style="stop-color:#93c5fd"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- グリッド線（薄い） -->
+  <g stroke="rgba(255,255,255,0.15)" stroke-width="2">
+    <line x1="96" y1="128" x2="416" y2="128"/>
+    <line x1="96" y1="192" x2="416" y2="192"/>
+    <line x1="96" y1="256" x2="416" y2="256"/>
+    <line x1="96" y1="320" x2="416" y2="320"/>
+    <line x1="96" y1="384" x2="416" y2="384"/>
+    
+    <line x1="160" y1="128" x2="160" y2="416"/>
+    <line x1="224" y1="128" x2="224" y2="416"/>
+    <line x1="288" y1="128" x2="288" y2="416"/>
+    <line x1="352" y1="128" x2="352" y2="416"/>
+  </g>
+  
+  <!-- チャート軸 -->
+  <line x1="96" y1="128" x2="96" y2="416" stroke="white" stroke-width="6" stroke-linecap="round"/>
+  <line x1="96" y1="416" x2="416" y2="416" stroke="white" stroke-width="6" stroke-linecap="round"/>
+  
+  <!-- ローソク足チャート -->
+  <g>
+    <!-- ローソク足1（上昇） -->
+    <line x1="128" y1="240" x2="128" y2="320" stroke="white" stroke-width="2"/>
+    <rect x="118" y="260" width="20" height="40" fill="#60a5fa"/>
+    
+    <!-- ローソク足2（下降） -->
+    <line x1="160" y1="200" x2="160" y2="280" stroke="white" stroke-width="2"/>
+    <rect x="150" y="220" width="20" height="40" fill="white"/>
+    
+    <!-- ローソク足3（上昇） -->
+    <line x1="192" y1="180" x2="192" y2="260" stroke="white" stroke-width="2"/>
+    <rect x="182" y="200" width="20" height="40" fill="#60a5fa"/>
+    
+    <!-- ローソク足4（下降） -->
+    <line x1="224" y1="220" x2="224" y2="300" stroke="white" stroke-width="2"/>
+    <rect x="214" y="240" width="20" height="40" fill="white"/>
+    
+    <!-- ローソク足5（上昇） -->
+    <line x1="256" y1="160" x2="256" y2="240" stroke="white" stroke-width="2"/>
+    <rect x="246" y="180" width="20" height="40" fill="#60a5fa"/>
+  </g>
+  
+  <!-- 折れ線チャート -->
+  <path d="M128 340 L192 300 L256 260 L320 200 L384 160" 
+        stroke="url(#highlight)" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- データポイント -->
+  <circle cx="128" cy="340" r="8" fill="white"/>
+  <circle cx="192" cy="300" r="8" fill="white"/>
+  <circle cx="256" cy="260" r="8" fill="white"/>
+  <circle cx="320" cy="200" r="8" fill="white"/>
+  <circle cx="384" cy="160" r="8" fill="white"/>
+  
+  <!-- AIの要素を表現 -->
+  <path d="M320 320 Q 352 280, 384 320" stroke="#60a5fa" stroke-width="4" fill="none" stroke-dasharray="8,4" stroke-linecap="round"/>
+  <circle cx="384" cy="320" r="6" fill="#60a5fa" stroke="white" stroke-width="2"/>
+</svg>

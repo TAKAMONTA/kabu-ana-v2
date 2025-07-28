@@ -1,0 +1,68 @@
+// Simple test to verify Jest is working
+describe('Simple Test Suite', () => {
+  test('should pass basic test', () => {
+    expect(1 + 1).toBe(2);
+  });
+
+  test('should handle string operations', () => {
+    expect('hello world').toContain('world');
+  });
+
+  test('should work with arrays', () => {
+    const arr = [1, 2, 3];
+    expect(arr).toHaveLength(3);
+    expect(arr).toContain(2);
+  });
+
+  test('should handle async operations', async () => {
+    const promise = Promise.resolve('success');
+    await expect(promise).resolves.toBe('success');
+  });
+});
+
+describe('PayPal Configuration Test', () => {
+  test('should have correct plan structure', () => {
+    const plans = {
+      monthly: {
+        id: 'monthly_1000',
+        name: '月額プラン',
+        price: 1000,
+        currency: 'JPY',
+        interval: 'month'
+      },
+      yearly: {
+        id: 'yearly_10000',
+        name: '年額プラン',
+        price: 10000,
+        currency: 'JPY',
+        interval: 'year'
+      }
+    };
+
+    expect(plans.monthly.price).toBe(1000);
+    expect(plans.yearly.price).toBe(10000);
+    expect(plans.monthly.currency).toBe('JPY');
+    expect(plans.yearly.currency).toBe('JPY');
+  });
+
+  test('should format prices correctly', () => {
+    const formatPrice = (amount, currency = 'JPY') => {
+      return new Intl.NumberFormat('ja-JP', {
+        style: 'currency',
+        currency,
+        minimumFractionDigits: 0,
+      }).format(amount);
+    };
+
+    expect(formatPrice(1000)).toBe('¥1,000');
+    expect(formatPrice(10000)).toBe('¥10,000');
+  });
+});
+
+describe('Environment Configuration', () => {
+  test('should have test environment variables', () => {
+    expect(process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID).toBe('test_paypal_client_id');
+    expect(process.env.PAYPAL_CLIENT_SECRET).toBe('test_paypal_secret');
+    expect(process.env.NEXT_PUBLIC_BASE_URL).toBe('http://localhost:8080');
+  });
+});

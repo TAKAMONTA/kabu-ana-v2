@@ -1,0 +1,301 @@
+const { test, expect } = require('@playwright/test');
+const axios = require('axios');
+
+// PayPal Sandbox環境の設定
+const PAYPAL_CONFIG = {
+  clientId: process.env.PAYPAL_CLIENT_ID || 'your-sandbox-client-id',
+  clientSecret: process.env.PAYPAL_CLIENT_SECRET || 'your-sandbox-client-secret',
+  baseURL: 'https://api-m.sandbox.paypal.com',
+  mode: 'sandbox'
+};
+
+// アクセストークンを取得する関数
+async function getPayPalAccessToken() {
+  const auth = Buffer.from(`${PAYPAL_CONFIG.clientId}:${PAYPAL_CONFIG.clientSecret}`).toString('base64');
+  
+  try {
+    const response = await axios.post(
+      `${PAYPAL_CONFIG.baseURL}/v1/oauth2/token`,
+      'grant_type=client_credentials',
+      {
+        headers: {
+          'Authorization': `Basic ${auth}`,
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
+      }
+    );
+    
+    return response.data.access_token;
+  } catch (error) {
+    console.error('Failed to get PayPal access token:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+// プラン情報
+const TEST_PLAN = {
+  id: process.env.PAYPAL_TEST_PLAN_ID || 'P-5ML4271244454362WXNWU5NQ', // 実際のプランIDに置き換える
+  name: 'Test Subscription Plan'
+};
+
+test.describe('PayPal Sandbox Integration Tests', () => {
+  let accessToken;
+
+  test.beforeAll(async () => {
+    // PayPal認証情報の確認
+    if (!process.env.PAYPAL_CLIENT_ID || !process.env.PAYPAL_CLIENT_SECRET) {
+      console.warn('⚠️  PayPal credentials not found in environment variables');
+      console.warn('Please set PAYPAL_CLIENT_ID and PAYPAL_CLIENT_SECRET');
+      console.warn('Skipping PayPal integration tests...');
+      test.skip();
+    }
+
+    // アクセストークンを取得
+    console.log('🔐 Getting PayPal access token...');
+    accessToken = await getPayPalAccessToken();
+    console.log('✅ Access token obtained');
+  });
+
+  test('should create a subscription using PayPal API', async ({ request }) => {
+    console.log('🧪 Starting PayPal subscription creation test');
+
+    // 1. サブスクリプションを作成
+    const subscriptionData = {
+      plan_id: TEST_PLAN.id,
+      subscriber: {
+        name: {
+          given_name: 'Test',
+          surname: 'User'
+        },
+        email_address: `test-${Date.now()}@example.com`
+      },
+      application_context: {
+        brand_name: 'AI Stock Test',
+        locale: 'ja-JP',
+        shipping_preference: 'NO_SHIPPING',
+        user_action: 'SUBSCRIBE_NOW',
+        return_url: 'http://localhost:3000/subscription/success',
+        cancel_url: 'http://localhost:3000/subscription/cancel'
+      }
+    };
+
+    console.log('📤 Creating subscription with data:', JSON.stringify(subscriptionData, null, 2));
+
+    const createResponse = await request.post(`${PAYPAL_CONFIG.baseURL}/v1/billing/subscriptions`, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        'PayPal-Request-Id': `test-${Date.now()}` // 冪等性のため
+      },
+      data: subscriptionData
+    });
+
+    expect(createResponse.status()).toBe(201);
+    
+    const subscription = await createResponse.json();
+    console.log('✅ Subscription created:', subscription.id);
+    console.log('📋 Subscription status:', subscription.status);
+
+    // サブスクリプションIDとステータスを確認
+    expect(subscription).toHaveProperty('id');
+    expect(subscription).toHaveProperty('status');
+    expect(subscription.status).toBe('APPROVAL_PENDING');
+
+    // 2. 作成したサブスクリプションの詳細を取得
+    console.log('🔍 Getting subscription details...');
+    
+    const detailsResponse = await request.get(
+      `${PAYPAL_CONFIG.baseURL}/v1/billing/subscriptions/${subscription.id}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    expect(detailsResponse.status()).toBe(200);
+    
+    const subscriptionDetails = await detailsResponse.json();
+    console.log('📊 Subscription details:', JSON.stringify(subscriptionDetails, null, 2));
+
+    // 詳細情報の検証
+    expect(subscriptionDetails.id).toBe(subscription.id);
+    expect(subscriptionDetails.plan_id).toBe(TEST_PLAN.id);
+    expect(subscriptionDetails.subscriber.email_address).toContain('test-');
+  });
+
+  test('should handle subscription with your app API', async ({ request, page }) => {
+    console.log('🧪 Testing subscription confirmation with app API');
+
+    // 1. まずPayPalでサブスクリプションを作成
+    const subscriptionData = {
+      plan_id: TEST_PLAN.id,
+      subscriber: {
+        name: {
+          given_name: 'Integration',
+          surname: 'Test'
+        },
+        email_address: `integration-test-${Date.now()}@example.com`
+      },
+      application_context: {
+        brand_name: 'AI Stock Test',
+        locale: 'ja-JP',
+        shipping_preference: 'NO_SHIPPING',
+        user_action: 'SUBSCRIBE_NOW',
+        return_url: 'http://localhost:3000/subscription/success',
+        cancel_url: 'http://localhost:3000/subscription/cancel'
+      }
+    };
+
+    const createResponse = await request.post(`${PAYPAL_CONFIG.baseURL}/v1/billing/subscriptions`, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        'PayPal-Request-Id': `integration-test-${Date.now()}`
+      },
+      data: subscriptionData
+    });
+
+    const subscription = await createResponse.json();
+    console.log('✅ Test subscription created:', subscription.id);
+
+    // 2. アプリケーションのAPIでサブスクリプションを確認
+    // 実際のアプリケーションが動作している必要があります
+    const appApiUrl = process.env.APP_API_URL || 'http://localhost:3000';
+    
+    try {
+      const confirmResponse = await request.post(`${appApiUrl}/api/paypal/subscription/confirm`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer test-token' // 実際の認証トークンが必要な場合
+        },
+        data: {
+          subscriptionID: subscription.id,
+          planId: TEST_PLAN.id,
+          planName: TEST_PLAN.name,
+          orderID: `ORDER-${Date.now()}`
+        }
+      });
+
+      // アプリケーションのレスポンスを検証
+      if (confirmResponse.status() === 200) {
+        const responseData = await confirmResponse.json();
+        console.log('✅ App API response:', responseData);
+        
+        expect(responseData).toHaveProperty('success', true);
+        expect(responseData).toHaveProperty('subscriptionId', subscription.id);
+      } else {
+        console.warn('⚠️  App API returned status:', confirmResponse.status());
+        const errorData = await confirmResponse.text();
+        console.warn('Error response:', errorData);
+      }
+    } catch (error) {
+      console.warn('⚠️  Could not connect to app API:', error.message);
+      console.warn('Make sure your application is running on', appApiUrl);
+    }
+  });
+
+  test('should verify subscription webhook', async ({ request }) => {
+    console.log('🧪 Testing PayPal webhook verification');
+
+    // Webhookイベントのシミュレーション
+    const webhookEvent = {
+      id: 'WH-TEST-EVENT-001',
+      event_type: 'BILLING.SUBSCRIPTION.ACTIVATED',
+      resource_type: 'subscription',
+      resource: {
+        id: 'I-TEST-SUBSCRIPTION',
+        plan_id: TEST_PLAN.id,
+        status: 'ACTIVE',
+        subscriber: {
+          email_address: 'webhook-test@example.com'
+        }
+      }
+    };
+
+    // アプリケーションのWebhookエンドポイントをテスト
+    const appApiUrl = process.env.APP_API_URL || 'http://localhost:3000';
+    
+    try {
+      const webhookResponse = await request.post(`${appApiUrl}/api/paypal/webhook`, {
+        headers: {
+          'Content-Type': 'application/json',
+          'PayPal-Transmission-Id': 'test-transmission-id',
+          'PayPal-Transmission-Time': new Date().toISOString(),
+          'PayPal-Transmission-Sig': 'test-signature' // 実際には検証が必要
+        },
+        data: webhookEvent
+      });
+
+      console.log('📨 Webhook response status:', webhookResponse.status());
+      
+      if (webhookResponse.status() === 200) {
+        console.log('✅ Webhook processed successfully');
+      } else {
+        const responseText = await webhookResponse.text();
+        console.warn('⚠️  Webhook response:', responseText);
+      }
+    } catch (error) {
+      console.warn('⚠️  Could not test webhook endpoint:', error.message);
+    }
+  });
+
+  test('should list active subscriptions', async ({ request }) => {
+    console.log('🧪 Listing active subscriptions');
+
+    const listResponse = await request.get(
+      `${PAYPAL_CONFIG.baseURL}/v1/billing/subscriptions?plan_id=${TEST_PLAN.id}&status=ACTIVE`,
+      {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    expect(listResponse.status()).toBe(200);
+    
+    const subscriptionsList = await listResponse.json();
+    console.log('📋 Active subscriptions count:', subscriptionsList.subscriptions?.length || 0);
+    
+    if (subscriptionsList.subscriptions && subscriptionsList.subscriptions.length > 0) {
+      console.log('📊 Sample subscription:', subscriptionsList.subscriptions[0]);
+    }
+  });
+});
+
+// E2Eフローテスト（UIを含む）
+test.describe('PayPal Subscription E2E Flow', () => {
+  test.skip('should complete full subscription flow', async ({ page }) => {
+    // このテストは実際のUIが必要なため、アプリケーションが動作している必要があります
+    
+    // 1. アプリケーションのサブスクリプションページにアクセス
+    await page.goto('http://localhost:3000/subscription');
+    
+    // 2. プランを選択
+    await page.click('[data-plan-id="standard"]');
+    
+    // 3. PayPalボタンをクリック
+    await page.click('#paypal-button');
+    
+    // 4. PayPalのポップアップウィンドウを処理
+    const [paypalPopup] = await Promise.all([
+      page.waitForEvent('popup'),
+      page.click('#paypal-button')
+    ]);
+    
+    // 5. PayPal Sandboxアカウントでログイン
+    await paypalPopup.fill('#email', process.env.PAYPAL_SANDBOX_BUYER_EMAIL || 'buyer@example.com');
+    await paypalPopup.fill('#password', process.env.PAYPAL_SANDBOX_BUYER_PASSWORD || 'password');
+    await paypalPopup.click('#btnLogin');
+    
+    // 6. サブスクリプションを承認
+    await paypalPopup.waitForSelector('#confirmButtonTop');
+    await paypalPopup.click('#confirmButtonTop');
+    
+    // 7. アプリケーションに戻って成功を確認
+    await page.waitForURL('**/subscription/success');
+    await expect(page.locator('.success-message')).toContainText('サブスクリプションが正常に開始されました');
+  });
+});

@@ -1,0 +1,14 @@
+// jest.config.js
+module.exports = {
+  testEnvironment: 'node',
+  setupFilesAfterEnv: ['<rootDir>/tests/setup.js'],
+  testMatch: [
+    '<rootDir>/tests/unit/**/*.test.js',
+    '<rootDir>/test/unit/**/*.test.js'
+  ],
+  testTimeout: 10000,
+  forceExit: true,
+  clearMocks: true,
+  resetMocks: true,
+  restoreMocks: true
+};
