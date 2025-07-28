@@ -1,0 +1,183 @@
+// E2E Test for PayPal Payment Flow
+// Using Playwright framework
+
+const { test, expect } = require('@playwright/test');
+
+test.describe('PayPal Payment Flow', () => {
+  test.beforeEach(async ({ page }) => {
+    // Navigate to the app
+    await page.goto('http://localhost:8080');
+    
+    // Wait for app to load
+    await page.waitForSelector('[data-testid="app-loaded"]', { timeout: 10000 });
+  });
+
+  test('should display pricing modal when subscription button is clicked', async ({ page }) => {
+    // Click subscription/pricing button
+    await page.click('[data-testid="subscription-button"]');
+    
+    // Verify pricing modal is displayed
+    await expect(page.locator('[data-testid="pricing-modal"]')).toBeVisible();
+    
+    // Verify plan options are shown
+    await expect(page.locator('[data-testid="monthly-plan"]')).toBeVisible();
+    await expect(page.locator('[data-testid="yearly-plan"]')).toBeVisible();
+  });
+
+  test('should show PayPal payment interface for monthly plan', async ({ page }) => {
+    // Open pricing modal
+    await page.click('[data-testid="subscription-button"]');
+    
+    // Select monthly plan
+    await page.click('[data-testid="monthly-plan"]');
+    
+    // Wait for PayPal button to load
+    await page.waitForSelector('[data-testid="paypal-button"]', { timeout: 15000 });
+    
+    // Verify PayPal button is visible
+    await expect(page.locator('[data-testid="paypal-button"]')).toBeVisible();
+  });
+
+  test('should show PayPal payment interface for yearly plan', async ({ page }) => {
+    // Open pricing modal
+    await page.click('[data-testid="subscription-button"]');
+    
+    // Select yearly plan
+    await page.click('[data-testid="yearly-plan"]');
+    
+    // Wait for PayPal button to load
+    await page.waitForSelector('[data-testid="paypal-button"]', { timeout: 15000 });
+    
+    // Verify PayPal button is visible
+    await expect(page.locator('[data-testid="paypal-button"]')).toBeVisible();
+  });
+
+  test('should handle PayPal sandbox payment flow', async ({ page }) => {
+    // Skip this test in CI unless PayPal sandbox is configured
+    test.skip(!process.env.PAYPAL_CLIENT_ID, 'PayPal sandbox not configured');
+    
+    // Open pricing modal
+    await page.click('[data-testid="subscription-button"]');
+    
+    // Select monthly plan
+    await page.click('[data-testid="monthly-plan"]');
+    
+    // Click PayPal button
+    await page.click('[data-testid="paypal-button"]');
+    
+    // Wait for PayPal popup or redirect
+    const paypalPage = await page.waitForEvent('popup', { timeout: 30000 });
+    
+    // Verify PayPal login page is loaded
+    await expect(paypalPage.url()).toContain('paypal.com');
+    
+    // Note: In real tests, you would use PayPal sandbox test credentials
+    // For now, just verify the redirect happened
+    await paypalPage.close();
+  });
+
+  test('should display error message for failed payment', async ({ page }) => {
+    // Mock PayPal API to return error
+    await page.route('**/api/paypal/create-subscription', route => {
+      route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'Payment failed' })
+      });
+    });
+    
+    // Open pricing modal and attempt payment
+    await page.click('[data-testid="subscription-button"]');
+    await page.click('[data-testid="monthly-plan"]');
+    await page.click('[data-testid="paypal-button"]');
+    
+    // Verify error message is displayed
+    await expect(page.locator('[data-testid="error-message"]')).toBeVisible();
+    await expect(page.locator('[data-testid="error-message"]')).toContainText('失敗');
+  });
+
+  test('should update subscription status after successful payment', async ({ page }) => {
+    // Mock successful PayPal response
+    await page.route('**/api/paypal/create-subscription', route => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          subscriptionId: 'I-TEST123456789',
+          approvalUrl: 'https://sandbox.paypal.com/webapps/billing/subscriptions/approve?ba_token=TEST123'
+        })
+      });
+    });
+    
+    // Mock subscription status API
+    await page.route('**/api/user/subscription-status*', route => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          hasActiveSubscription: true,
+          subscription: {
+            planType: 'monthly',
+            status: 'ACTIVE'
+          }
+        })
+      });
+    });
+    
+    // Perform payment flow
+    await page.click('[data-testid="subscription-button"]');
+    await page.click('[data-testid="monthly-plan"]');
+    
+    // Verify subscription status is updated
+    await expect(page.locator('[data-testid="subscription-status"]')).toContainText('アクティブ');
+  });
+
+  test('should close modal when cancel button is clicked', async ({ page }) => {
+    // Open pricing modal
+    await page.click('[data-testid="subscription-button"]');
+    
+    // Verify modal is open
+    await expect(page.locator('[data-testid="pricing-modal"]')).toBeVisible();
+    
+    // Click cancel/close button
+    await page.click('[data-testid="modal-close"]');
+    
+    // Verify modal is closed
+    await expect(page.locator('[data-testid="pricing-modal"]')).not.toBeVisible();
+  });
+});
+
+test.describe('Stock Analysis Flow', () => {
+  test('should perform stock analysis with valid ticker', async ({ page }) => {
+    await page.goto('http://localhost:8080');
+    
+    // Enter stock ticker
+    await page.fill('[data-testid="stock-input"]', 'AAPL');
+    
+    // Click analyze button
+    await page.click('[data-testid="analyze-button"]');
+    
+    // Wait for analysis to complete
+    await page.waitForSelector('[data-testid="analysis-results"]', { timeout: 30000 });
+    
+    // Verify analysis results are displayed
+    await expect(page.locator('[data-testid="analysis-results"]')).toBeVisible();
+    await expect(page.locator('[data-testid="price-info"]')).toBeVisible();
+  });
+
+  test('should show error for invalid ticker', async ({ page }) => {
+    await page.goto('http://localhost:8080');
+    
+    // Enter invalid ticker
+    await page.fill('[data-testid="stock-input"]', 'INVALID123');
+    
+    // Click analyze button
+    await page.click('[data-testid="analyze-button"]');
+    
+    // Wait for error message
+    await page.waitForSelector('[data-testid="error-message"]', { timeout: 10000 });
+    
+    // Verify error is displayed
+    await expect(page.locator('[data-testid="error-message"]')).toBeVisible();
+  });
+});

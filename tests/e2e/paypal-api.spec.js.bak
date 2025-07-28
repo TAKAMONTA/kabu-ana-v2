@@ -1,0 +1,181 @@
+const { test, expect } = require('@playwright/test');
+const express = require('express');
+const bodyParser = require('body-parser');
+
+// テスト用のモックサーバーをセットアップ
+let server;
+
+test.describe('PayPal Subscription API', () => {
+  const apiEndpoint = '/api/paypal/subscription/confirm';
+  // 環境変数でポートを管理（CI/CD環境での競合回避）
+  const mockServerPort = process.env.TEST_SERVER_PORT || 3333;
+  // IPv4アドレスを明示的に指定（WebKitでのIPv6接続問題を回避）
+  const baseURL = `http://127.0.0.1:${mockServerPort}`;
+
+  test.beforeAll(async () => {
+    // テスト用のモックサーバーを起動
+    const app = express();
+    app.use(bodyParser.json());
+
+    // モックAPIエンドポイント
+    app.post(apiEndpoint, (req, res) => {
+      const { subscriptionID, planId, planName } = req.body;
+      
+      // 必須パラメータのチェック
+      if (!subscriptionID || !planId) {
+        return res.status(400).json({
+          success: false,
+          error: '必要なパラメータが不足しています'
+        });
+      }
+
+      // 成功レスポンス
+      res.json({
+        success: true,
+        message: 'サブスクリプションが正常に確認・保存されました',
+        subscriptionId: subscriptionID,
+        planId: planId,
+        planName: planName || 'スタンダード',
+        status: 'ACTIVE',
+        user: {
+          id: 'user_123',
+          email: 'test@example.com'
+        },
+        timestamp: new Date().toISOString()
+      });
+    });
+
+    // ヘルスチェックエンドポイント
+    app.get('/api/health', (req, res) => {
+      res.json({ status: 'OK' });
+    });
+
+    // サーバーを起動
+    return new Promise((resolve) => {
+      server = app.listen(mockServerPort, () => {
+        console.log(`Test server running on http://localhost:${mockServerPort}`);
+        resolve();
+      });
+    });
+  });
+
+  test.afterAll(async () => {
+    // テスト終了後にサーバーを閉じる
+    if (server) {
+      await new Promise((resolve) => server.close(resolve));
+    }
+  });
+
+  test('should confirm a subscription successfully', async ({ request }) => {
+    console.log('🧪 Test starting: should confirm a subscription successfully');
+    
+    const requestBody = {
+      subscriptionID: 'MOCK_SUB_12345',
+      planId: 'MOCK_PLAN_123',
+      planName: 'スタンダード',
+      orderID: 'MOCK_ORDER_12345'
+    };
+    
+    console.log('📤 Request body:', JSON.stringify(requestBody, null, 2));
+    console.log('🔗 Full URL:', `${baseURL}${apiEndpoint}`);
+
+    try {
+      // 完全なURLを使用してリクエストを送信
+      const response = await request.post(`${baseURL}${apiEndpoint}`, {
+        headers: {
+          'Authorization': 'Bearer test-token-123',
+          'Content-Type': 'application/json'
+        },
+        data: requestBody
+      });
+      
+      console.log('📊 Response status:', response.status());
+      console.log('📋 Response headers:', response.headers());
+      
+      // エラーレスポンスの場合、ボディを出力してデバッグ
+      if (response.status() !== 200) {
+        const errorBody = await response.text();
+        console.error('❌ Error response body:', errorBody);
+      }
+      
+      // レスポンスの検証
+      expect(response.status()).toBe(200);
+      
+      const responseBody = await response.json();
+      console.log('📦 Response body:', JSON.stringify(responseBody, null, 2));
+      
+      // レスポンスボディに必要なプロパティが含まれていることを確認
+      console.log('✅ Checking response properties...');
+      
+      expect(responseBody).toHaveProperty('success', true);
+      console.log('✅ success property: OK');
+      
+      expect(responseBody).toHaveProperty('message', 'サブスクリプションが正常に確認・保存されました');
+      console.log('✅ message property: OK');
+      
+      expect(responseBody).toHaveProperty('subscriptionId', 'MOCK_SUB_12345');
+      console.log('✅ subscriptionId property: OK');
+      
+      expect(responseBody).toHaveProperty('planId', 'MOCK_PLAN_123');
+      console.log('✅ planId property: OK');
+      
+      console.log('🎉 Test completed successfully!');
+      
+    } catch (error) {
+      console.error('❌ Error details:', error.message);
+      console.error('❌ Stack trace:', error.stack);
+      
+      // レスポンスがある場合はその内容を表示
+      if (error.response) {
+        console.error('❌ Error response status:', error.response.status);
+        try {
+          const errorBody = await error.response.text();
+          console.error('❌ Error response body:', errorBody);
+        } catch (e) {
+          console.error('❌ Could not read error response body');
+        }
+      }
+      
+      throw error;
+    }
+  });
+
+  test('should return an error if required parameters are missing', async ({ request }) => {
+    console.log('🧪 Test starting: should return an error if required parameters are missing');
+    
+    const requestBody = {
+      // planId と planName が欠けている
+      subscriptionID: 'TEST_SUB_INCOMPLETE'
+    };
+    
+    console.log('📤 Request body (missing params):', JSON.stringify(requestBody, null, 2));
+
+    try {
+      // 完全なURLを使用してリクエストを送信
+      const response = await request.post(`${baseURL}${apiEndpoint}`, {
+        headers: {
+          'Authorization': 'Bearer dummy-test-token',
+          'Content-Type': 'application/json'
+        },
+        data: requestBody
+      });
+      
+      console.log('📊 Response status:', response.status());
+
+      // レスポンスのステータスコードが400であることを確認
+      expect(response.status()).toBe(400);
+
+      const responseBody = await response.json();
+      console.log('📦 Error response body:', JSON.stringify(responseBody, null, 2));
+
+      // エラーメッセージが正しいことを確認
+      expect(responseBody).toHaveProperty('error', '必要なパラメータが不足しています');
+      
+      console.log('🎉 Error test completed successfully!');
+      
+    } catch (error) {
+      console.error('❌ Error in error test:', error.message);
+      throw error;
+    }
+  });
+});

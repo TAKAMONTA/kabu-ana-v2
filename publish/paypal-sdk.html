@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PayPal SDK テスト</title>
+</head>
+<body>
+    <h1>PayPal 4段階課金プラン テスト</h1>
+    
+    <div id="pricing-plans">
+        <div class="plan-card">
+            <h3>無料プラン</h3>
+            <p>¥0/月</p>
+            <p>月3件まで分析</p>
+            <button disabled>現在のプラン</button>
+        </div>
+        
+        <div class="plan-card">
+            <h3>ベーシックプラン</h3>
+            <p>¥480/月</p>
+            <p>月10件まで分析</p>
+            <div id="paypal-basic"></div>
+        </div>
+        
+        <div class="plan-card">
+            <h3>スタンダードプラン</h3>
+            <p>¥1,480/月</p>
+            <p>月30件まで分析</p>
+            <div id="paypal-standard"></div>
+        </div>
+        
+        <div class="plan-card">
+            <h3>プレミアムプラン</h3>
+            <p>¥3,980/月</p>
+            <p>無制限分析</p>
+            <div id="paypal-premium"></div>
+        </div>
+    </div>
+
+    <!-- PayPal SDK -->
+    <script src="https://www.paypal.com/sdk/js?client-id=ARukwqlBASQcz2RhzVMcEppqDVboLLat5u0L3_gVH0JPfjZajwRFPR30UqBWF66bpNohbVxEfN&vault=true&intent=subscription&currency=JPY"></script>
+    
+    <script>
+        // PayPal プランID（実際のプラン作成後に更新）
+        const PLAN_IDS = {
+            basic: 'P-BASIC-PLAN-ID-PLACEHOLDER',
+            standard: 'P-STANDARD-PLAN-ID-PLACEHOLDER',
+            premium: 'P-PREMIUM-PLAN-ID-PLACEHOLDER'
+        };
+
+        // PayPalボタンの作成
+        function createPayPalButton(planType, containerId) {
+            if (!PLAN_IDS[planType] || PLAN_IDS[planType].includes('PLACEHOLDER')) {
+                document.getElementById(containerId).innerHTML = '<button disabled>プラン準備中</button>';
+                return;
+            }
+
+            paypal.Buttons({
+                style: {
+                    shape: 'rect',
+                    color: 'blue',
+                    layout: 'vertical',
+                    label: 'subscribe'
+                },
+                createSubscription: function(data, actions) {
+                    return actions.subscription.create({
+                        'plan_id': PLAN_IDS[planType]
+                    });
+                },
+                onApprove: function(data, actions) {
+                    alert(`${planType}プランの登録が承認されました！\nSubscription ID: ${data.subscriptionID}`);
+                    console.log('Subscription approved:', data);
+                    
+                    // 実際のアプリケーションでは、ここでサーバーに確認リクエストを送信
+                    fetch('/api/paypal/subscription/confirm', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            subscriptionID: data.subscriptionID,
+                            planId: PLAN_IDS[planType],
+                            planName: `${planType}プラン`
+                        })
+                    }).then(response => response.json())
+                      .then(result => console.log('Confirmation result:', result))
+                      .catch(error => console.error('Confirmation error:', error));
+                },
+                onError: function(err) {
+                    console.error('PayPal error:', err);
+                    alert('決済処理中にエラーが発生しました。');
+                },
+                onCancel: function(data) {
+                    console.log('PayPal cancelled:', data);
+                    alert('決済がキャンセルされました。');
+                }
+            }).render('#' + containerId);
+        }
+
+        // ページ読み込み後にボタンを作成
+        window.addEventListener('load', function() {
+            createPayPalButton('basic', 'paypal-basic');
+            createPayPalButton('standard', 'paypal-standard');
+            createPayPalButton('premium', 'paypal-premium');
+        });
+    </script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        #pricing-plans {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        
+        .plan-card {
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            background: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .plan-card h3 {
+            margin-top: 0;
+            color: #1f2937;
+        }
+        
+        .plan-card p {
+            margin: 10px 0;
+            color: #6b7280;
+        }
+        
+        .plan-card p:first-of-type {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #3b82f6;
+        }
+        
+        button:disabled {
+            background: #f3f4f6;
+            color: #9ca3af;
+            cursor: not-allowed;
+            padding: 10px 20px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+        }
+    </style>
+</body>
+</html>

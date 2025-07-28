@@ -1,0 +1,264 @@
+// Unit Tests for PayPal Service
+// Using Jest framework
+
+// Mock the PayPal service functions
+const mockPayPalService = {
+  initializePayPal: jest.fn(),
+  createPayPalSubscription: jest.fn(),
+  getSubscriptionStatus: jest.fn(),
+  cancelSubscription: jest.fn(),
+  formatPayPalPrice: jest.fn(),
+  PAYPAL_PLANS: {
+    monthly: {
+      id: 'monthly_1000',
+      name: '月額プラン',
+      price: 1000,
+      currency: 'JPY',
+      interval: 'month'
+    },
+    yearly: {
+      id: 'yearly_10000',
+      name: '年額プラン',
+      price: 10000,
+      currency: 'JPY',
+      interval: 'year'
+    }
+  }
+};
+
+// Mock the module
+jest.mock('../../services/paypalService', () => mockPayPalService, { virtual: true });
+
+// Mock PayPal SDK
+jest.mock('@paypal/paypal-js', () => ({
+  loadScript: jest.fn()
+}));
+
+// Mock fetch for API calls
+global.fetch = jest.fn();
+
+describe('PayPal Service', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID = 'test_client_id';
+  });
+
+  afterEach(() => {
+    delete process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID;
+  });
+
+  describe('initializePayPal', () => {
+    it('should initialize PayPal SDK successfully', async () => {
+      const mockPayPal = { Buttons: jest.fn() };
+      require('@paypal/paypal-js').loadScript.mockResolvedValue(mockPayPal);
+
+      const result = await initializePayPal();
+
+      expect(result).toBe(mockPayPal);
+      expect(require('@paypal/paypal-js').loadScript).toHaveBeenCalledWith({
+        clientId: 'test_client_id',
+        components: 'buttons,funding-eligibility',
+        currency: 'JPY',
+        intent: 'subscription',
+        vault: true
+      });
+    });
+
+    it('should throw error when client ID is not configured', async () => {
+      delete process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID;
+
+      await expect(initializePayPal()).rejects.toThrow('PayPal Client ID is not configured');
+    });
+
+    it('should handle PayPal SDK load failure', async () => {
+      const error = new Error('Failed to load PayPal SDK');
+      require('@paypal/paypal-js').loadScript.mockRejectedValue(error);
+
+      await expect(initializePayPal()).rejects.toThrow('Failed to load PayPal SDK');
+    });
+  });
+
+  describe('createPayPalSubscription', () => {
+    it('should create monthly subscription successfully', async () => {
+      const mockResponse = {
+        subscriptionId: 'I-TEST123456789',
+        approvalUrl: 'https://sandbox.paypal.com/approve'
+      };
+
+      fetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(mockResponse)
+      });
+
+      const result = await createPayPalSubscription('monthly');
+
+      expect(result).toEqual(mockResponse);
+      expect(fetch).toHaveBeenCalledWith('/api/paypal/create-subscription', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          planId: 'monthly_1000',
+          planType: 'monthly',
+          amount: 1000,
+          currency: 'JPY',
+          interval: 'month'
+        })
+      });
+    });
+
+    it('should create yearly subscription successfully', async () => {
+      const mockResponse = {
+        subscriptionId: 'I-TEST987654321',
+        approvalUrl: 'https://sandbox.paypal.com/approve'
+      };
+
+      fetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(mockResponse)
+      });
+
+      const result = await createPayPalSubscription('yearly');
+
+      expect(result).toEqual(mockResponse);
+      expect(fetch).toHaveBeenCalledWith('/api/paypal/create-subscription', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          planId: 'yearly_10000',
+          planType: 'yearly',
+          amount: 10000,
+          currency: 'JPY',
+          interval: 'year'
+        })
+      });
+    });
+
+    it('should handle subscription creation failure', async () => {
+      fetch.mockResolvedValueOnce({
+        ok: false,
+        status: 500
+      });
+
+      await expect(createPayPalSubscription('monthly')).rejects.toThrow('Failed to create subscription');
+    });
+
+    it('should handle network error', async () => {
+      fetch.mockRejectedValueOnce(new Error('Network error'));
+
+      await expect(createPayPalSubscription('monthly')).rejects.toThrow('Network error');
+    });
+  });
+
+  describe('getSubscriptionStatus', () => {
+    it('should get subscription status successfully', async () => {
+      const mockStatus = {
+        hasActiveSubscription: true,
+        subscription: {
+          planType: 'monthly',
+          status: 'ACTIVE'
+        }
+      };
+
+      fetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(mockStatus)
+      });
+
+      const result = await getSubscriptionStatus('user123');
+
+      expect(result).toEqual(mockStatus);
+      expect(fetch).toHaveBeenCalledWith('/api/user/subscription-status?userId=user123');
+    });
+
+    it('should handle API error', async () => {
+      fetch.mockResolvedValueOnce({
+        ok: false,
+        status: 404
+      });
+
+      await expect(getSubscriptionStatus('user123')).rejects.toThrow('Failed to get subscription status');
+    });
+  });
+
+  describe('cancelSubscription', () => {
+    it('should cancel subscription successfully', async () => {
+      const mockResponse = { status: 'cancelled' };
+
+      fetch.mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve(mockResponse)
+      });
+
+      const result = await cancelSubscription('I-TEST123456789');
+
+      expect(result).toEqual(mockResponse);
+      expect(fetch).toHaveBeenCalledWith('/api/paypal/cancel-subscription', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ subscriptionId: 'I-TEST123456789' })
+      });
+    });
+
+    it('should handle cancellation failure', async () => {
+      fetch.mockResolvedValueOnce({
+        ok: false,
+        status: 400
+      });
+
+      await expect(cancelSubscription('I-TEST123456789')).rejects.toThrow('Failed to cancel subscription');
+    });
+  });
+
+  describe('formatPayPalPrice', () => {
+    it('should format JPY prices correctly', () => {
+      expect(formatPayPalPrice(1000, 'JPY')).toBe('¥1,000');
+      expect(formatPayPalPrice(10000, 'JPY')).toBe('¥10,000');
+      expect(formatPayPalPrice(500, 'JPY')).toBe('¥500');
+    });
+
+    it('should format USD prices correctly', () => {
+      expect(formatPayPalPrice(10.99, 'USD')).toBe('$10.99');
+      expect(formatPayPalPrice(100, 'USD')).toBe('$100.00');
+    });
+
+    it('should use JPY as default currency', () => {
+      expect(formatPayPalPrice(1000)).toBe('¥1,000');
+    });
+  });
+
+  describe('PAYPAL_PLANS', () => {
+    it('should have correct plan configurations', () => {
+      expect(PAYPAL_PLANS.monthly).toEqual({
+        id: 'monthly_1000',
+        name: '月額プラン',
+        price: 1000,
+        currency: 'JPY',
+        interval: 'month'
+      });
+
+      expect(PAYPAL_PLANS.yearly).toEqual({
+        id: 'yearly_10000',
+        name: '年額プラン',
+        price: 10000,
+        currency: 'JPY',
+        interval: 'year'
+      });
+    });
+
+    it('should have all required plan properties', () => {
+      Object.values(PAYPAL_PLANS).forEach(plan => {
+        expect(plan).toHaveProperty('id');
+        expect(plan).toHaveProperty('name');
+        expect(plan).toHaveProperty('price');
+        expect(plan).toHaveProperty('currency');
+        expect(plan).toHaveProperty('interval');
+      });
+    });
+  });
+});

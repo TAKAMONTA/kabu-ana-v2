@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PWAアイコン生成</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f0f4f8;
+    }
+    h1 {
+      color: #1a365d;
+      text-align: center;
+    }
+    .container {
+      background-color: white;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .icons-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      margin-top: 20px;
+    }
+    .icon-item {
+      text-align: center;
+    }
+    .btn {
+      background: linear-gradient(135deg, #1a365d 0%, #4299e1 100%);
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      margin: 20px auto;
+      display: block;
+    }
+    .btn:hover {
+      opacity: 0.9;
+    }
+    .download-links {
+      margin-top: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .download-link {
+      display: inline-block;
+      padding: 8px 16px;
+      background-color: #e2e8f0;
+      color: #1a365d;
+      text-decoration: none;
+      border-radius: 4px;
+      margin-right: 10px;
+    }
+    .download-link:hover {
+      background-color: #cbd5e0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>PWAアイコン生成</h1>
+    
+    <p>このツールは、SVGアイコンからPWAに必要な各サイズのPNGアイコンを生成します。</p>
+    
+    <button id="generateBtn" class="btn">SVGアップロードして生成</button>
+<button id="generateFromSvgBtn" class="btn" style="background: linear-gradient(135deg,#3b82f6 0%,#60a5fa 100%);">既存のSVGから生成</button>
+    
+    <div class="icons-container" id="iconsContainer"></div>
+    
+    <div class="download-links" id="downloadLinks"></div>
+  </div>
+
+  <script>
+    const sizes = [16, 32, 64, 128, 192, 256, 384, 512];
+    
+    document.getElementById('generateBtn').addEventListener('click', async () => {
+      const [fileHandle] = await window.showOpenFilePicker({
+        types: [{ description: 'SVG Images', accept: { 'image/svg+xml': ['.svg'] } }],
+        multiple: false
+      }).catch(() => []);
+      if (!fileHandle) return;
+      const file = await fileHandle.getFile();
+      const svgText = await file.text();
+      generateIcons(svgText);
+    });
+    document.getElementById('generateFromSvgBtn').addEventListener('click', async () => {
+      try {
+        const response = await fetch('/icons/stock-chart-icon.svg');
+        const svgText = await response.text();
+        generateIcons(svgText);
+      } catch (e) {
+        alert('既存SVGの取得に失敗しました');
+      }
+    });
+    
+    async function generateIcons(svgText) {
+      try {
+        const iconsContainer = document.getElementById('iconsContainer');
+        const downloadLinks = document.getElementById('downloadLinks');
+        
+        iconsContainer.innerHTML = '';
+        downloadLinks.innerHTML = '';
+        
+        for (const size of sizes) {
+          const canvas = document.createElement('canvas');
+          canvas.width = size;
+          canvas.height = size;
+          const ctx = canvas.getContext('2d');
+          
+          // SVGをCanvasに描画
+          const img = new Image();
+          img.onload = function() {
+            ctx.drawImage(img, 0, 0, size, size);
+            
+            // アイコンを表示
+            const iconItem = document.createElement('div');
+            iconItem.className = 'icon-item';
+            
+            const iconImg = document.createElement('img');
+            iconImg.src = canvas.toDataURL('image/png');
+            iconImg.width = size;
+            iconImg.height = size;
+            
+            const sizeText = document.createElement('p');
+            sizeText.textContent = `${size}x${size}`;
+            
+            iconItem.appendChild(iconImg);
+            iconItem.appendChild(sizeText);
+            iconsContainer.appendChild(iconItem);
+            
+            // ダウンロードリンクを作成
+            const downloadLink = document.createElement('a');
+            downloadLink.href = canvas.toDataURL('image/png');
+            downloadLink.download = size === 192 ? 'pwa-192x192.png' : 
+                                   size === 512 ? 'pwa-512x512.png' : 
+                                   `icon-${size}x${size}.png`;
+            downloadLink.className = 'download-link';
+            downloadLink.textContent = `${size}x${size} PNGをダウンロード`;
+            downloadLinks.appendChild(downloadLink);
+          };
+          
+          // SVG文字列をData URLに変換
+          const svgBlob = new Blob([svgText], { type: 'image/svg+xml' });
+          const url = URL.createObjectURL(svgBlob);
+          img.src = url;
+        }
+      } catch (error) {
+        console.error('アイコン生成エラー:', error);
+        alert('アイコンの生成中にエラーが発生しました。');
+      }
+    }
+  </script>
+</body>
+</html>

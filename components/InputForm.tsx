@@ -1,0 +1,171 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { InvestmentStyle } from '../types';
+import { UploadIcon } from './icons';
+import LoadingSpinner from './LoadingSpinner';
+
+interface InputFormProps {
+  onAnalyze: (ticker: string, style: InvestmentStyle, image: string | null, question: string) => void;
+  isLoading: boolean;
+  canAskQuestions: boolean;
+}
+
+const InputForm: React.FC<InputFormProps> = ({ onAnalyze, isLoading, canAskQuestions }) => {
+  const [ticker, setTicker] = useState('');
+  const [investmentStyle, setInvestmentStyle] = useState<InvestmentStyle>(InvestmentStyle.MID);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [question, setQuestion] = useState<string>('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, []);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      setImageFile(null);
+      setImagePreview(null);
+    }
+  };
+
+  const handleTickerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setTicker(e.target.value);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!ticker.trim()) {
+      alert('銘柄名／コードを入力してください。');
+      return;
+    }
+
+    if (imageFile) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = (reader.result as string).split(',')[1];
+        onAnalyze(ticker.trim(), investmentStyle, base64String, question.trim());
+      };
+      reader.readAsDataURL(imageFile);
+    } else {
+      onAnalyze(ticker.trim(), investmentStyle, null, question.trim());
+    }
+  };
+
+  const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+  return (
+    <form onSubmit={handleSubmit} className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 md:p-8 space-y-6 border border-gray-700 shadow-2xl">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <label htmlFor="ticker" className="block text-sm font-medium text-gray-300 mb-2">銘柄名／コード</label>
+          <input
+            ref={inputRef}
+            type="text"
+            id="ticker"
+            name="ticker"
+            value={ticker}
+            onChange={handleTickerChange}
+            style={{
+              width: '100%',
+              backgroundColor: '#1f2937',
+              color: '#ffffff',
+              WebkitTextFillColor: '#ffffff',
+              caretColor: '#ffffff',
+              border: '1px solid #4b5563',
+              borderRadius: '0.5rem',
+              padding: '0.5rem 1rem',
+              fontSize: '16px',
+              fontFamily: 'inherit',
+              lineHeight: '1.5',
+              opacity: 1,
+              visibility: 'visible',
+            }}
+            placeholder="例: AAPL, 7203 (トヨタ)"
+            required
+            disabled={isLoading}
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
+          />
+        </div>
+        <div>
+          <label htmlFor="investmentStyle" className="block text-sm font-medium text-gray-300 mb-2">投資スタイル</label>
+          <select
+            id="investmentStyle"
+            value={investmentStyle}
+            onChange={(e) => setInvestmentStyle(e.target.value as InvestmentStyle)}
+            className="w-full bg-gray-900/70 border border-gray-600 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+            disabled={isLoading}
+          >
+            <option value={InvestmentStyle.MID}>中期投資</option>
+            <option value={InvestmentStyle.SHORT}>短期投資</option>
+            <option value={InvestmentStyle.LONG}>長期投資</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label htmlFor="question" className="block text-sm font-medium text-gray-300 mb-2">追加の質問 (任意)</label>
+        <textarea
+          id="question"
+          value={question}
+          onChange={(e) => setQuestion(e.target.value)}
+          placeholder="例: この会社の将来性について教えてください。"
+          className="w-full bg-gray-900/70 border border-gray-600 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition h-24"
+          disabled={isLoading}
+        />
+      </div>
+
+      <div>
+        <label htmlFor="image-upload" className="block text-sm font-medium text-gray-300 mb-2">画像アップロード (任意)</label>
+        <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-600 border-dashed rounded-md">
+          <div className="space-y-1 text-center">
+            {imagePreview ? (
+              <img src={imagePreview} alt="Preview" className="mx-auto h-24 w-auto" />
+            ) : (
+              <UploadIcon className="mx-auto h-12 w-12 text-gray-400" />
+            )}
+            <div className="flex text-sm text-gray-400">
+              <label htmlFor="image-upload-input" className="relative cursor-pointer bg-gray-800 rounded-md font-medium text-blue-400 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-offset-gray-800 focus-within:ring-blue-500">
+                <span>ファイルをアップロード</span>
+                <input id="image-upload-input" name="image-upload" type="file" className="sr-only" onChange={handleImageChange} accept="image/*" />
+              </label>
+              <p className="pl-1">またはドラッグ＆ドロップ</p>
+            </div>
+            <p className="text-xs text-gray-500">
+              PNG, JPG, GIF up to 10MB
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <button
+          type="submit"
+          disabled={isLoading}
+          className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 focus:ring-blue-500 disabled:bg-gray-500 disabled:cursor-not-allowed transition-colors duration-300"
+        >
+          {isLoading ? (
+            <div className="flex items-center">
+              <LoadingSpinner size="sm" className="mr-3" />
+              分析中...
+            </div>
+          ) : '分析を開始'}
+        </button>
+      </div>
+    </form>
+  );
+};
+
+export default InputForm;
